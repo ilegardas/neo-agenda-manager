@@ -63,8 +63,27 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  await setupAuth(app);
-  registerAuthRoutes(app);
+  // Solo ejecuta la inicialización de Replit si NO estás en producción
+  // Esto evita que tumbe el contenedor en Railway por variables no configuradas
+  if (process.env.NODE_ENV !== "production") {
+    try {
+      await setupAuth(app);
+      registerAuthRoutes(app);
+      log("Replit Auth initialized (Development mode)");
+    } catch (authErr: any) {
+      log(`Replit Auth skipped or failed: ${authErr.message}`, "auth");
+    }
+  } else {
+    log("Running in Production mode — Replit Auth bypassed", "auth");
+  }
+
+  await registerRoutes(httpServer, app);
+
+  // Start report scheduler – pass a function that fetches all user IDs
+  startScheduler(async () => {
+    const rows = await db.select({ id: users.id }).from(users);
+    return rows.map(r => r.id);
+  });
 
   await registerRoutes(httpServer, app);
 
