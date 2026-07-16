@@ -1,0 +1,56 @@
+Política de Privacidad de migestion.pro
+Última actualización: 17 de marzo de 2026
+
+En migestion.pro, la privacidad de nuestros usuarios y de los clientes finales de los negocios que utilizan nuestra plataforma es nuestra prioridad. Esta política describe cómo recopilamos, usamos y protegemos la información.
+
+1. Información que Recopilamos
+Para que nuestra plataforma funcione correctamente, manejamos dos tipos de datos:
+
+Datos del Suscriptor (Dueño del negocio): Nombre, correo electrónico, datos de facturación y detalles del negocio.
+
+Datos del Cliente Final: Nombre, teléfono, correo electrónico y cualquier información adicional requerida por el negocio para la gestión de la cita (ej. motivo de consulta).
+
+Datos de Uso: Dirección IP, tipo de dispositivo y cookies para mejorar la experiencia del usuario.
+
+2. Uso de la Información
+Utilizamos la información recopilada exclusivamente para:
+
+Gestionar las agendas: Facilitar la reserva, cancelación y reprogramación de citas.
+
+Notificaciones: Enviar confirmaciones y recordatorios vía SMS o correo electrónico.
+
+Soporte Técnico: Resolver incidencias y mejorar las funcionalidades de la plataforma.
+
+Seguridad: Prevenir actividades fraudulentas o accesos no autorizados.
+
+3. Compartición de Datos con Terceros
+migestion.pro no vende ni alquila bases de datos a terceros. Solo compartimos datos en los siguientes casos:
+
+Proveedores de Servicios: Herramientas de envío de correos (ej. SendGrid), pasarelas de pago (ej. Stripe) o servicios de hosting (ej. AWS).
+
+Cumplimiento Legal: Cuando sea requerido por una autoridad judicial competente.
+
+4. Seguridad de los Datos
+Implementamos medidas técnicas de alto nivel para proteger la información:
+
+Cifrado de datos en tránsito mediante protocolos SSL/TLS.
+
+Almacenamiento en servidores seguros con copias de seguridad periódicas.
+
+Acceso restringido a la base de datos solo a personal autorizado.
+
+5. Derechos del Usuario (ARCO)
+Tanto los suscriptores como sus clientes tienen derecho a:
+
+Acceder a sus datos personales.
+
+Rectificar información inexacta.
+
+Cancelar o eliminar su cuenta y datos asociados.
+
+Oponerse al tratamiento de sus datos para fines específicos.
+
+Para ejercer estos derechos, puede escribirnos a: soporte@migestion.pro.
+
+6. Cookies
+Utilizamos cookies esenciales para mantener la sesión activa y cookies analíticas para entender cómo se usa la plataforma. Puedes desactivarlas en la configuración de tu navegador, aunque esto podría afectar el funcionamiento del sitio.

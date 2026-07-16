@@ -1,0 +1,32 @@
+Términos y Condiciones de Uso – migestion.pro
+Fecha de entrada en vigor: 17 de marzo de 2026
+El presente documento constituye el acuerdo legal entre migestion.pro (en adelante, "La Plataforma") y el usuario profesional o empresa (en adelante, "El Suscriptor") que contrata nuestros servicios de gestión de agendas online.
+1. Descripción del Servicio
+migestion.pro es una herramienta SaaS que permite al Suscriptor:
+•	Gestionar calendarios y horarios de atención.
+•	Permitir que sus clientes finales realicen reservas online.
+•	Facilitar el contacto entre el cliente y su cliente final
+2. Registro y Responsabilidad de la Cuenta
+•	El Suscriptor debe proporcionar información real y actualizada.
+•	La seguridad de la contraseña es responsabilidad exclusiva del Suscriptor.
+•	migestion.pro no se hace responsable por el uso indebido de la cuenta por parte de terceros.
+3. Planes y Pagos
+•	Suscripciones: El acceso a la plataforma se basa en planes mensuales o anuales.
+•	Pagos: Se realizarán por adelantado mediante los métodos de pago habilitados.
+•	Mora: El impago de la suscripción resultará en la suspensión temporal del servicio tras un aviso previo de 5 días hábiles.
+•	Cancelación: El Suscriptor puede cancelar su suscripción en cualquier momento, manteniendo el acceso hasta el final del periodo pagado.
+4. Propiedad Intelectual
+Todo el software, diseño, logotipos y código fuente de migestion.pro son propiedad exclusiva de la plataforma. Se otorga al Suscriptor una licencia de uso no exclusiva, limitada y revocable para los fines comerciales del negocio.
+5. Responsabilidad sobre el Contenido y Clientes Finales
+Importante: El Suscriptor es el único responsable de la relación con sus clientes finales. migestion.pro es solo un facilitador tecnológico.
+•	El Suscriptor garantiza que tiene el consentimiento de sus clientes para introducir sus datos en la plataforma.
+•	La Plataforma no interviene en las disputas comerciales entre el negocio y sus clientes (por ejemplo, cancelaciones de última hora o reembolsos de servicios).
+6. Limitación de Responsabilidad
+Aunque trabajamos para que el sistema esté disponible el 99.9% del tiempo, migestion.pro no garantiza que el servicio sea ininterrumpido. No seremos responsables por:
+•	Caídas de red externas o problemas de hosting fuera de nuestro control.
+•	Pérdida de beneficios debido a errores en la gestión de citas por parte del Suscriptor.
+7. Modificaciones de los Términos
+Nos reservamos el derecho de modificar estos términos para adaptarlos a nuevas funciones o leyes. Se notificará a los Suscriptores vía correo electrónico con al menos 15 días de antelación.
+8. Ley Aplicable y Jurisdicción
+Cualquier conflicto relacionado con estos términos se resolverá bajo las leyes de Chihuahua México y ante los tribunales de ciudad Chihuahua.
+
