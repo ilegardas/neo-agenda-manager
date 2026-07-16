@@ -1,0 +1,137 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  --font-display: 'Outfit', sans-serif;
+
+  /* Fresh, clean palette with trust-inspiring blues and vibrant accents */
+  --background: 210 18% 88%;
+  --foreground: 222 47% 11%;
+  
+  --primary: 221 83% 53%;
+  --primary-foreground: 210 40% 98%;
+  
+  --secondary: 210 16% 82%;
+  --secondary-foreground: 222 47% 11%;
+  
+  --muted: 210 16% 82%;
+  --muted-foreground: 215 16% 40%;
+  
+  --accent: 162 94% 30%; /* Fresh Green for availability */
+  --accent-foreground: 210 40% 98%;
+  
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
+  
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+
+  --border: 214 28% 76%;
+  --input: 214 28% 76%;
+  --ring: 221 83% 53%;
+
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: 222 47% 10%;
+  --foreground: 210 40% 96%;
+
+  --primary: 221 83% 62%;
+  --primary-foreground: 222 47% 10%;
+
+  --secondary: 217 33% 18%;
+  --secondary-foreground: 210 40% 96%;
+
+  --muted: 217 33% 17%;
+  --muted-foreground: 215 20% 60%;
+
+  --accent: 162 94% 35%;
+  --accent-foreground: 222 47% 10%;
+
+  --destructive: 0 63% 58%;
+  --destructive-foreground: 210 40% 96%;
+
+  --card: 222 47% 13%;
+  --card-foreground: 210 40% 96%;
+
+  --popover: 222 47% 13%;
+  --popover-foreground: 210 40% 96%;
+
+  --border: 217 33% 22%;
+  --input: 217 33% 22%;
+  --ring: 221 83% 62%;
+
+  --sidebar: 222 47% 11%;
+  --sidebar-foreground: 210 40% 96%;
+  --sidebar-border: 217 33% 20%;
+  --sidebar-primary: 221 83% 62%;
+  --sidebar-primary-foreground: 222 47% 10%;
+  --sidebar-accent: 217 33% 18%;
+  --sidebar-accent-foreground: 210 40% 96%;
+  --sidebar-ring: 221 83% 62%;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary;
+    font-family: var(--font-sans);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    @apply font-bold tracking-tight text-foreground;
+  }
+}
+
+/* Dark mode overrides for hardcoded Tailwind grays */
+.dark .bg-gray-50 { background-color: hsl(222 47% 10%) !important; }
+.dark .bg-gray-100 { background-color: hsl(222 47% 14%) !important; }
+.dark .bg-gray-200 { background-color: hsl(217 33% 20%) !important; }
+.dark .bg-white { background-color: hsl(222 47% 13%) !important; }
+.dark .text-gray-900 { color: hsl(210 40% 96%) !important; }
+.dark .text-gray-800 { color: hsl(210 40% 90%) !important; }
+.dark .text-gray-700 { color: hsl(210 30% 80%) !important; }
+.dark .text-gray-600 { color: hsl(215 20% 68%) !important; }
+.dark .text-gray-500 { color: hsl(215 16% 55%) !important; }
+.dark .text-gray-400 { color: hsl(215 16% 48%) !important; }
+.dark .border-gray-100 { border-color: hsl(217 33% 22%) !important; }
+.dark .border-gray-200 { border-color: hsl(217 33% 25%) !important; }
+.dark .divide-gray-100 > * + * { border-color: hsl(217 33% 22%) !important; }
+.dark .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0,0,0,0.4) !important; }
+.dark .bg-blue-50 { background-color: hsl(221 47% 18%) !important; }
+.dark .bg-green-50 { background-color: hsl(160 30% 15%) !important; }
+.dark .bg-red-50 { background-color: hsl(0 30% 15%) !important; }
+.dark .bg-orange-50 { background-color: hsl(30 30% 15%) !important; }
+.dark .bg-yellow-50 { background-color: hsl(40 30% 15%) !important; }
+.dark .hover\:bg-gray-50:hover { background-color: hsl(217 33% 18%) !important; }
+.dark .hover\:bg-gray-100:hover { background-color: hsl(217 33% 20%) !important; }
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl;
+  }
+  
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/30 transition-colors;
+}
