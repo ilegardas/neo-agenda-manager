@@ -2,12 +2,12 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import { setupAuth, registerAuthRoutes, getSession } from "./replit_integrations/auth"; // Se añade getSession
+import { setupAuth, registerAuthRoutes, getSession } from "./replit_integrations/auth";
 import { startScheduler } from "./scheduler";
 import { db } from "./db";
 import { users } from "@shared/schema";
 import { authStorage } from "./replit_integrations/auth/storage";
-import { scrypt, ...restCrypto } from "crypto";
+import { scrypt } from "crypto";
 import { promisify } from "util";
 
 const scryptAsync = promisify(scrypt);
@@ -80,7 +80,6 @@ app.use((req, res, next) => {
 (async () => {
   if (process.env.NODE_ENV !== "production") {
     try {
-      // En desarrollo usamos el flujo de Replit completo
       await setupAuth(app);
       registerAuthRoutes(app);
       log("Replit Auth initialized (Development mode)");
