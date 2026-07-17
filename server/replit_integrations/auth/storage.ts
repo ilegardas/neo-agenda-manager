@@ -1,13 +1,19 @@
 import { users, type User, type UpsertUser } from "@shared/models/auth";
+import { passwordResetTokens } from "@shared/schema";
 import { db } from "../../db";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 
 export interface IAuthStorage {
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createLocalUser(data: { username: string; password: string; firstName: string; lastName?: string; email?: string }): Promise<User>;
   updateUserRole(id: string, role: 'admin' | 'user'): Promise<User>;
+  createPasswordResetToken(email: string, token: string, expiresAt: Date): Promise<void>;
+  getPasswordResetToken(token: string): Promise<{ id: number; email: string; expiresAt: Date; usedAt: Date | null } | undefined>;
+  markPasswordResetTokenUsed(id: number): Promise<void>;
+  updateUserPasswordByEmail(email: string, hashedPassword: string): Promise<void>;
 }
 
 class AuthStorage implements IAuthStorage {
@@ -34,7 +40,9 @@ class AuthStorage implements IAuthStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const [user] = await db.select().from(users).where(
+      or(eq(users.username, username), eq(users.email, username))
+    );
     return user;
   }
 
@@ -52,6 +60,11 @@ class AuthStorage implements IAuthStorage {
     return user;
   }
 
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
   async updateUserRole(id: string, role: 'admin' | 'user'): Promise<User> {
     const [updated] = await db
       .update(users)
@@ -59,6 +72,23 @@ class AuthStorage implements IAuthStorage {
       .where(eq(users.id, id))
       .returning();
     return updated;
+  }
+
+  async createPasswordResetToken(email: string, token: string, expiresAt: Date): Promise<void> {
+    await db.insert(passwordResetTokens).values({ email, token, expiresAt });
+  }
+
+  async getPasswordResetToken(token: string): Promise<{ id: number; email: string; expiresAt: Date; usedAt: Date | null } | undefined> {
+    const [record] = await db.select().from(passwordResetTokens).where(eq(passwordResetTokens.token, token));
+    return record as any;
+  }
+
+  async markPasswordResetTokenUsed(id: number): Promise<void> {
+    await db.update(passwordResetTokens).set({ usedAt: new Date() }).where(eq(passwordResetTokens.id, id));
+  }
+
+  async updateUserPasswordByEmail(email: string, hashedPassword: string): Promise<void> {
+    await db.update(users).set({ password: hashedPassword, updatedAt: new Date() }).where(eq(users.email, email));
   }
 }
 

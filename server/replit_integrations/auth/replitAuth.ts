@@ -28,12 +28,8 @@ export function getSession() {
     ttl: sessionTtl,
     tableName: "sessions",
   });
-  
-  // Si process.env.SESSION_SECRET no existe, usamos una firma fija por defecto
-  const secretKey = process.env.SESSION_SECRET || "agendamanager_production_fallback_secret_key_123";
-
   return session({
-    secret: secretKey,
+    secret: process.env.SESSION_SECRET!,
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
@@ -44,6 +40,7 @@ export function getSession() {
     },
   });
 }
+
 function updateUserSession(
   user: any,
   tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers

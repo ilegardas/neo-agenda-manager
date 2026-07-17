@@ -1,5 +1,5 @@
 
-import { pgTable, text, serial, integer, boolean, timestamp, varchar, doublePrecision } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, varchar, doublePrecision, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -223,3 +223,13 @@ export const minutas = pgTable("minutas", {
 export const insertMinutaSchema = createInsertSchema(minutas).omit({ id: true, createdAt: true });
 export type Minuta = typeof minutas.$inferSelect;
 export type InsertMinuta = z.infer<typeof insertMinutaSchema>;
+
+// ── Password reset tokens ─────────────────────────────────────────────────────
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: serial("id").primaryKey(),
+  email: varchar("email").notNull(),
+  token: varchar("token", { length: 64 }).notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});

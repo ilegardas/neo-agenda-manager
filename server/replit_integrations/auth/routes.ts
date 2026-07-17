@@ -3,6 +3,7 @@ import { authStorage } from "./storage";
 import { isAuthenticated } from "./replitAuth";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
+import { getSmtpConfig, sendPasswordResetEmail } from "../../email";
 
 const scryptAsync = promisify(scrypt);
 
@@ -96,5 +97,57 @@ export function registerAuthRoutes(app: Express): void {
       }
       res.json({ ok: true });
     });
+  });
+
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) return res.status(400).json({ message: "Email requerido." });
+
+      const user = await authStorage.getUserByEmail(email);
+      // Always return success to prevent email enumeration
+      if (!user || !user.password) return res.json({ ok: true });
+
+      const token = randomBytes(32).toString("hex");
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      await authStorage.createPasswordResetToken(email, token, expiresAt);
+
+      const smtp = getSmtpConfig();
+      if (smtp) {
+        const proto = req.headers["x-forwarded-proto"] || req.protocol;
+        const host = req.headers["x-forwarded-host"] || req.get("host");
+        const baseUrl = `${proto}://${host}`;
+        await sendPasswordResetEmail(smtp, email, `${baseUrl}/reset-password?token=${token}`);
+      } else {
+        console.warn("[auth] SMTP not configured — reset token:", token);
+      }
+
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Error in forgot-password:", error);
+      res.status(500).json({ message: "Error al procesar la solicitud." });
+    }
+  });
+
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { token, password } = req.body;
+      if (!token || !password) return res.status(400).json({ message: "Datos incompletos." });
+      if (password.length < 6) return res.status(400).json({ message: "La contraseña debe tener al menos 6 caracteres." });
+
+      const record = await authStorage.getPasswordResetToken(token);
+      if (!record) return res.status(400).json({ message: "Enlace inválido o expirado." });
+      if (record.usedAt) return res.status(400).json({ message: "Este enlace ya fue utilizado." });
+      if (new Date() > record.expiresAt) return res.status(400).json({ message: "El enlace ha expirado." });
+
+      const hashed = await hashPassword(password);
+      await authStorage.updateUserPasswordByEmail(record.email, hashed);
+      await authStorage.markPasswordResetTokenUsed(record.id);
+
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Error in reset-password:", error);
+      res.status(500).json({ message: "Error al restablecer la contraseña." });
+    }
   });
 }

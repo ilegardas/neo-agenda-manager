@@ -2,22 +2,11 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import { setupAuth, registerAuthRoutes, getSession } from "./replit_integrations/auth";
+import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
 import { startScheduler } from "./scheduler";
 import { db } from "./db";
 import { users } from "@shared/schema";
-import { authStorage } from "./replit_integrations/auth/storage";
-import { scrypt } from "crypto";
-import { promisify } from "util";
-
-const scryptAsync = promisify(scrypt);
-
-async function comparePasswords(supplied: string, stored: string): Promise<boolean> {
-  const [hashed, salt] = stored.split(".");
-  const buf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  const { timingSafeEqual } = await import("crypto");
-  return timingSafeEqual(Buffer.from(hashed, "hex"), buf);
-}
+import { eq } from "drizzle-orm";
 
 // Prevent ECONNRESET / pool errors from crashing the process in Node ≥ 15
 process.on("uncaughtException", (err) => {
@@ -48,10 +37,6 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
-// Habilitar sesiones globales en producción/desarrollo para que funcione la autenticación local
-app.set("trust proxy", 1);
-app.use(getSession());
-
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -78,74 +63,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  if (process.env.NODE_ENV !== "production") {
-    try {
-      await setupAuth(app);
-      registerAuthRoutes(app);
-      log("Replit Auth initialized (Development mode)");
-    } catch (authErr: any) {
-      log(`Replit Auth skipped or failed: ${authErr.message}`, "auth");
-    }
-  } else {
-    log("Running in Production mode — Using independent native local auth", "auth");
+  await setupAuth(app);
+  registerAuthRoutes(app);
 
-    // Ajuste explícito en la obtención del usuario para evitar 304/bucles y validar la sesión local
-    app.get("/api/auth/user", async (req: any, res) => {
-      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-      res.setHeader("Pragma", "no-cache");
-      res.setHeader("Expires", "0");
-      
-      const localUserId = req.session?.localUserId;
-      if (!localUserId) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
-
-      try {
-        const user = await authStorage.getUser(localUserId);
-        if (!user) return res.status(401).json({ message: "User not found" });
-        const { password: _, ...safeUser } = user;
-        return res.json(safeUser);
-      } catch (error) {
-        return res.status(500).json({ message: "Internal error" });
-      }
-    });
-
-    // Endpoint: Login nativo en producción sin usar subrutas Replit
-    app.post("/api/auth/login", async (req, res) => {
-      try {
-        const { username, password } = req.body;
-        if (!username || !password) {
-          return res.status(400).json({ message: "Se requieren usuario y contraseña." });
-        }
-        const user = await authStorage.getUserByUsername(username);
-        if (!user || !user.password) {
-          return res.status(401).json({ message: "Usuario o contraseña incorrectos." });
-        }
-        const valid = await comparePasswords(password, user.password);
-        if (!valid) {
-          return res.status(401).json({ message: "Usuario o contraseña incorrectos." });
-        }
-        (req.session as any).localUserId = user.id;
-        const { password: _, ...safeUser } = user;
-        return res.json(safeUser);
-      } catch (error) {
-        console.error("Error logging in:", error);
-        return res.status(500).json({ message: "Error al iniciar sesión." });
-      }
-    });
-
-    // Endpoint: Logout nativo
-    app.post("/api/auth/local-logout", (req, res) => {
-      req.session.destroy((err) => {
-        if (err) {
-          return res.status(500).json({ message: "Error al cerrar sesión." });
-        }
-        return res.json({ ok: true });
-      });
-    });
-  }
-
-  // Las rutas del negocio ahora usarán la versión del middleware corregido en routes.ts
   await registerRoutes(httpServer, app);
 
   // Start report scheduler – pass a function that fetches all user IDs

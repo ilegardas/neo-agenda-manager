@@ -11,10 +11,19 @@ export interface SmtpConfig {
 }
 
 export function getSmtpConfig(): SmtpConfig | null {
-  const host = process.env.SMTP_HOST;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
-  if (!host || !user || !pass) return null;
+  if (!user || !pass) return null;
+
+  let host = process.env.SMTP_HOST;
+  if (!host) {
+    const domain = user.split("@")[1]?.toLowerCase() ?? "";
+    if (domain === "gmail.com") host = "smtp.gmail.com";
+    else if (["hotmail.com", "outlook.com", "live.com"].includes(domain)) host = "smtp.office365.com";
+    else if (domain === "yahoo.com") host = "smtp.mail.yahoo.com";
+    else return null;
+  }
+
   return {
     host,
     port: parseInt(process.env.SMTP_PORT || "587", 10),
@@ -22,6 +31,41 @@ export function getSmtpConfig(): SmtpConfig | null {
     pass,
     from: process.env.SMTP_FROM || user,
   };
+}
+
+export async function sendPasswordResetEmail(
+  smtp: SmtpConfig,
+  toEmail: string,
+  resetUrl: string,
+): Promise<void> {
+  const transporter = nodemailer.createTransport({
+    host: smtp.host,
+    port: smtp.port,
+    secure: smtp.port === 465,
+    auth: { user: smtp.user, pass: smtp.pass },
+  });
+
+  await transporter.sendMail({
+    from: `"miGestion" <${smtp.from}>`,
+    to: toEmail,
+    subject: "Recuperación de contraseña — miGestion",
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#f9fafb;border-radius:12px;">
+        <h2 style="margin:0 0 8px;color:#111827;font-size:22px;">Recuperar contraseña</h2>
+        <p style="color:#6b7280;margin:0 0 24px;font-size:15px;">
+          Recibimos una solicitud para restablecer la contraseña de tu cuenta en <strong>miGestion</strong>.
+        </p>
+        <a href="${resetUrl}" style="display:inline-block;background:#6366f1;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:15px;">
+          Restablecer contraseña
+        </a>
+        <p style="color:#9ca3af;font-size:13px;margin:24px 0 0;">
+          Este enlace es válido por <strong>1 hora</strong>. Si no solicitaste este cambio, ignora este correo.
+        </p>
+        <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;" />
+        <p style="color:#d1d5db;font-size:12px;margin:0;">migestion.pro</p>
+      </div>
+    `,
+  });
 }
 
 function buildExcel(records: AttendanceRecord[]): Buffer {
