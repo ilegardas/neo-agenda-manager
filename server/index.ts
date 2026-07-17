@@ -1,12 +1,11 @@
 import express, { type Request, Response, NextFunction } from "express";
+import session from "express-session";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
 import { startScheduler } from "./scheduler";
 import { db } from "./db";
 import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
 
 // Prevent ECONNRESET / pool errors from crashing the process in Node ≥ 15
 process.on("uncaughtException", (err) => {
@@ -37,6 +36,19 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
+// Configuración de Sesiones Tradicionales
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "clave_secreta_local_desarrollo",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 24 * 60 * 60 * 1000, // 24 horas
+    },
+  })
+);
+
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -63,9 +75,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  await setupAuth(app);
-  registerAuthRoutes(app);
-
+  // Inicializa las rutas principales de la aplicación
   await registerRoutes(httpServer, app);
 
   // Start report scheduler – pass a function that fetches all user IDs
