@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/Landing";
+import ResetPasswordPage from "@/pages/ResetPassword";
 import Admin from "@/pages/Admin";
 import BookingPage from "@/pages/BookingPage";
 import MenuPage from "@/pages/MenuPage";
@@ -68,6 +69,7 @@ function AdminUserRoute({ params }: { params: { userId: string } }) {
 function Router() {
   return (
     <Switch>
+      <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/privacy" component={PrivacyPage} />
       <Route path="/terms" component={TermsPage} />
       <Route path="/book/:userId" component={BookingRoute} />

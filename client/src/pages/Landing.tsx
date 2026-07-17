@@ -12,13 +12,16 @@ import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/hooks/use-theme";
 
 export default function Landing() {
-  const [mode, setMode] = useState<"landing" | "login" | "register">("landing");
+  const [mode, setMode] = useState<"landing" | "login" | "register" | "forgot">("landing");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSent, setForgotSent] = useState(false);
+  const [forgotPending, setForgotPending] = useState(false);
   const login = useLogin();
   const register = useRegister();
   const { isAuthenticated } = useAuth();
@@ -68,6 +71,92 @@ export default function Landing() {
     setLastName("");
     setEmail("");
     setShowPassword(false);
+  }
+
+  async function handleForgot(e: React.FormEvent) {
+    e.preventDefault();
+    setForgotPending(true);
+    try {
+      await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+      setForgotSent(true);
+    } catch {
+      toast({ title: "Error", description: "No se pudo enviar el correo.", variant: "destructive" });
+    } finally {
+      setForgotPending(false);
+    }
+  }
+
+  if (mode === "forgot") {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-background flex flex-col">
+        <header className="bg-white dark:bg-card border-b border-border shadow-sm">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <button onClick={() => { setMode("landing"); setForgotSent(false); setForgotEmail(""); }} className="flex items-center gap-2">
+              <img src={logoImg} alt="migestion.pro" className="h-10 w-10 rounded-full object-cover" />
+              <h1 className="text-xl font-bold font-display text-gray-900 dark:text-foreground">migestion.pro</h1>
+            </button>
+          </div>
+        </header>
+
+        <main className="flex-1 flex items-center justify-center px-4 py-16">
+          <Card className="w-full max-w-md bg-white dark:bg-card shadow-lg">
+            <CardContent className="p-8">
+              {forgotSent ? (
+                <div className="text-center space-y-4">
+                  <div className="mx-auto bg-green-100 p-4 rounded-full w-fit">
+                    <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-2xl font-display font-bold text-gray-900 dark:text-foreground">Revisa tu correo</h2>
+                  <p className="text-muted-foreground text-sm">
+                    Si el correo <strong>{forgotEmail}</strong> tiene una cuenta, recibirás un enlace para restablecer tu contraseña. El enlace es válido por 1 hora.
+                  </p>
+                  <Button className="w-full h-11" onClick={() => { setMode("login"); setForgotSent(false); setForgotEmail(""); }}>
+                    Volver al inicio de sesión
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="text-center mb-6">
+                    <h2 className="text-2xl font-display font-bold text-gray-900 dark:text-foreground">¿Olvidaste tu contraseña?</h2>
+                    <p className="text-sm text-muted-foreground mt-1">Ingresa tu correo y te enviaremos un enlace de recuperación.</p>
+                  </div>
+                  <form onSubmit={handleForgot} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="forgot-email">Correo electrónico</Label>
+                      <Input
+                        id="forgot-email"
+                        type="email"
+                        value={forgotEmail}
+                        onChange={e => setForgotEmail(e.target.value)}
+                        placeholder="tu@correo.com"
+                        required
+                        data-testid="input-forgot-email"
+                      />
+                    </div>
+                    <Button type="submit" className="w-full h-11 font-semibold" disabled={forgotPending} data-testid="button-forgot-submit">
+                      {forgotPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                      Enviar enlace de recuperación
+                    </Button>
+                  </form>
+                  <p className="text-center text-sm text-muted-foreground mt-6">
+                    <button onClick={() => { setMode("login"); }} className="text-primary font-semibold hover:underline">
+                      Volver al inicio de sesión
+                    </button>
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </main>
+        <Footer />
+      </div>
+    );
   }
 
   if (mode === "login") {
@@ -137,23 +226,19 @@ export default function Landing() {
                 </Button>
               </form>
 
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center"><div className="w-full border-t"></div></div>
-                <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-muted-foreground">o</span></div>
+              <div className="mt-6 space-y-3 text-center text-sm text-muted-foreground">
+                <div>
+                  <button onClick={() => setMode("forgot")} className="text-primary hover:underline" data-testid="link-forgot-password">
+                    ¿Olvidaste tu contraseña?
+                  </button>
+                </div>
+                <div>
+                  ¿No tienes cuenta?{" "}
+                  <button onClick={() => { setMode("register"); resetForm(); }} className="text-primary font-semibold hover:underline" data-testid="link-go-register">
+                    Registrarse
+                  </button>
+                </div>
               </div>
-
-              <a href="/api/login" className="block">
-                <Button variant="outline" className="w-full h-11 font-semibold" data-testid="button-login-replit">
-                  Continuar con Replit
-                </Button>
-              </a>
-
-              <p className="text-center text-sm text-muted-foreground mt-6">
-                ¿No tienes cuenta?{" "}
-                <button onClick={() => { setMode("register"); resetForm(); }} className="text-primary font-semibold hover:underline" data-testid="link-go-register">
-                  Registrarse
-                </button>
-              </p>
             </CardContent>
           </Card>
         </main>
@@ -263,17 +348,6 @@ export default function Landing() {
                 </Button>
               </form>
 
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center"><div className="w-full border-t"></div></div>
-                <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-muted-foreground">o</span></div>
-              </div>
-
-              <a href="/api/login" className="block">
-                <Button variant="outline" className="w-full h-11 font-semibold" data-testid="button-register-replit">
-                  Registrarse con Replit
-                </Button>
-              </a>
-
               <p className="text-center text-sm text-muted-foreground mt-6">
                 ¿Ya tienes cuenta?{" "}
                 <button onClick={() => { setMode("login"); resetForm(); }} className="text-primary font-semibold hover:underline" data-testid="link-go-login">
@@ -336,11 +410,6 @@ export default function Landing() {
               <UserPlus className="w-5 h-5 mr-2" />
               Comenzar Gratis
             </Button>
-            <a href="/api/login">
-              <Button size="lg" variant="outline" className="h-14 px-10 text-lg font-semibold" data-testid="button-replit-hero">
-                Continuar con Replit
-              </Button>
-            </a>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-8">
