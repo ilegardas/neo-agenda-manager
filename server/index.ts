@@ -36,7 +36,7 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
-// Configuración de Sesiones Tradicionales
+// Manejo tradicional de sesiones HTTP en Express
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "clave_secreta_local_desarrollo",
@@ -44,7 +44,7 @@ app.use(
     saveUninitialized: false,
     cookie: {
       secure: process.env.NODE_ENV === "production",
-      maxAge: 24 * 60 * 60 * 1000, // 24 horas
+      maxAge: 24 * 60 * 60 * 1000, // 24 horas de duración de la sesión
     },
   })
 );
@@ -75,7 +75,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Inicializa las rutas principales de la aplicación
+  // Registro de todas las rutas de la aplicación
   await registerRoutes(httpServer, app);
 
   // Start report scheduler – pass a function that fetches all user IDs
