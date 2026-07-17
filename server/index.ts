@@ -64,7 +64,6 @@ app.use((req, res, next) => {
 
 (async () => {
   // Solo ejecuta la inicialización de Replit si NO estás en producción
-  // Esto evita que tumbe el contenedor en Railway por variables no configuradas
   if (process.env.NODE_ENV !== "production") {
     try {
       await setupAuth(app);
@@ -75,15 +74,20 @@ app.use((req, res, next) => {
     }
   } else {
     log("Running in Production mode — Replit Auth bypassed", "auth");
+
+    // Manejador explícito para producción que limpia caché y rompe el bucle
+    app.get("/api/auth/user", (req, res) => {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+      
+      const localUserId = (req.session as any)?.localUserId;
+      if (!localUserId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      return res.json({ id: localUserId });
+    });
   }
-
-  await registerRoutes(httpServer, app);
-
-  // Start report scheduler – pass a function that fetches all user IDs
-  startScheduler(async () => {
-    const rows = await db.select({ id: users.id }).from(users);
-    return rows.map(r => r.id);
-  });
 
   await registerRoutes(httpServer, app);
 
