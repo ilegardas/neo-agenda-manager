@@ -6,8 +6,18 @@ import { setupAuth, registerAuthRoutes, getSession } from "./replit_integrations
 import { startScheduler } from "./scheduler";
 import { db } from "./db";
 import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
 import { authStorage } from "./replit_integrations/auth/storage";
+import { scrypt, ...restCrypto } from "crypto";
+import { promisify } from "util";
+
+const scryptAsync = promisify(scrypt);
+
+async function comparePasswords(supplied: string, stored: string): Promise<boolean> {
+  const [hashed, salt] = stored.split(".");
+  const buf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+  const { timingSafeEqual } = await import("crypto");
+  return timingSafeEqual(Buffer.from(hashed, "hex"), buf);
+}
 
 // Prevent ECONNRESET / pool errors from crashing the process in Node ≥ 15
 process.on("uncaughtException", (err) => {
@@ -78,10 +88,7 @@ app.use((req, res, next) => {
       log(`Replit Auth skipped or failed: ${authErr.message}`, "auth");
     }
   } else {
-    log("Running in Production mode — Using local authentication bypass", "auth");
-
-    // Registramos las rutas nativas de registro y login en producción
-    registerAuthRoutes(app);
+    log("Running in Production mode — Using independent native local auth", "auth");
 
     // Ajuste explícito en la obtención del usuario para evitar 304/bucles y validar la sesión local
     app.get("/api/auth/user", async (req: any, res) => {
@@ -103,8 +110,43 @@ app.use((req, res, next) => {
         return res.status(500).json({ message: "Internal error" });
       }
     });
+
+    // Endpoint: Login nativo en producción sin usar subrutas Replit
+    app.post("/api/auth/login", async (req, res) => {
+      try {
+        const { username, password } = req.body;
+        if (!username || !password) {
+          return res.status(400).json({ message: "Se requieren usuario y contraseña." });
+        }
+        const user = await authStorage.getUserByUsername(username);
+        if (!user || !user.password) {
+          return res.status(401).json({ message: "Usuario o contraseña incorrectos." });
+        }
+        const valid = await comparePasswords(password, user.password);
+        if (!valid) {
+          return res.status(401).json({ message: "Usuario o contraseña incorrectos." });
+        }
+        (req.session as any).localUserId = user.id;
+        const { password: _, ...safeUser } = user;
+        return res.json(safeUser);
+      } catch (error) {
+        console.error("Error logging in:", error);
+        return res.status(500).json({ message: "Error al iniciar sesión." });
+      }
+    });
+
+    // Endpoint: Logout nativo
+    app.post("/api/auth/local-logout", (req, res) => {
+      req.session.destroy((err) => {
+        if (err) {
+          return res.status(500).json({ message: "Error al cerrar sesión." });
+        }
+        return res.json({ ok: true });
+      });
+    });
   }
 
+  // Las rutas del negocio ahora usarán la versión del middleware corregido en routes.ts
   await registerRoutes(httpServer, app);
 
   // Start report scheduler – pass a function that fetches all user IDs
