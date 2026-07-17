@@ -2,11 +2,12 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
+import { setupAuth, registerAuthRoutes, getSession } from "./replit_integrations/auth"; // Se añade getSession
 import { startScheduler } from "./scheduler";
 import { db } from "./db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { authStorage } from "./replit_integrations/auth/storage";
 
 // Prevent ECONNRESET / pool errors from crashing the process in Node ≥ 15
 process.on("uncaughtException", (err) => {
@@ -37,6 +38,10 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
+// Habilitar sesiones globales en producción/desarrollo para que funcione la autenticación local
+app.set("trust proxy", 1);
+app.use(getSession());
+
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -63,9 +68,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Solo ejecuta la inicialización de Replit si NO estás en producción
   if (process.env.NODE_ENV !== "production") {
     try {
+      // En desarrollo usamos el flujo de Replit completo
       await setupAuth(app);
       registerAuthRoutes(app);
       log("Replit Auth initialized (Development mode)");
@@ -73,19 +78,30 @@ app.use((req, res, next) => {
       log(`Replit Auth skipped or failed: ${authErr.message}`, "auth");
     }
   } else {
-    log("Running in Production mode — Replit Auth bypassed", "auth");
+    log("Running in Production mode — Using local authentication bypass", "auth");
 
-    // Manejador explícito para producción que limpia caché y rompe el bucle
-    app.get("/api/auth/user", (req, res) => {
+    // Registramos las rutas nativas de registro y login en producción
+    registerAuthRoutes(app);
+
+    // Ajuste explícito en la obtención del usuario para evitar 304/bucles y validar la sesión local
+    app.get("/api/auth/user", async (req: any, res) => {
       res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
       res.setHeader("Pragma", "no-cache");
       res.setHeader("Expires", "0");
       
-      const localUserId = (req.session as any)?.localUserId;
+      const localUserId = req.session?.localUserId;
       if (!localUserId) {
         return res.status(401).json({ message: "Not authenticated" });
       }
-      return res.json({ id: localUserId });
+
+      try {
+        const user = await authStorage.getUser(localUserId);
+        if (!user) return res.status(401).json({ message: "User not found" });
+        const { password: _, ...safeUser } = user;
+        return res.json(safeUser);
+      } catch (error) {
+        return res.status(500).json({ message: "Internal error" });
+      }
     });
   }
 
