@@ -5,7 +5,20 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import { insertAvailabilityRuleSchema, insertAppointmentSchema, insertMenuItemSchema, insertSucursalSchema, insertEmployeeSchema, insertScheduleSchema, insertCatalogPhotoSchema, insertMinutaSchema, insertChecklistSchema, insertChecklistItemSchema } from "@shared/schema";
-import { isAuthenticated } from "./replit_integrations/auth";
+import { isAuthenticated as replitAuth } from "./replit_integrations/auth";
+
+// Middleware híbrido que soporta bypass local en producción y Replit en desarrollo
+const isAuthenticated = (req: any, res: any, next: any) => {
+  if (req.session?.localUserId) {
+    return next();
+  }
+  if (process.env.NODE_ENV === "production") {
+    return res.status(401).json({ message: "Unauthorized - Local session missing" });
+  }
+  return replitAuth(req, res, next);
+};
+
+
 import { authStorage } from "./replit_integrations/auth/storage";
 import { stripe, PLANS, getPriceIds, type PlanKey } from "./stripe";
 import { getReportPeriodDates } from "./scheduler";
