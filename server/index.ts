@@ -41,20 +41,23 @@ app.use(
 app.use(express.urlencoded({ extended: false }));
 
 // Manejo tradicional de sesiones HTTP en Express
+// 2. Configuración de Sesión
 app.use(
   session({
-    name: "sid", // Nombre de cookie explicito
+    name: "sid",
     secret: process.env.SESSION_SECRET || "clave_secreta_local_desarrollo",
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === "production", // Requiere trust proxy (ya activo arriba)
+      secure: process.env.NODE_ENV === "production", // Funciona gracias a trust proxy = 1
       httpOnly: true,
-      sameSite: "lax", // Garantiza que el navegador conserve la cookie tras redirigir o recargar
-      maxAge: 24 * 60 * 60 * 1000, // 24 horas
+      sameSite: "lax", // Evita que Chrome deseche la cookie tras el POST
+      maxAge: 24 * 60 * 60 * 1000,
     },
   })
 );
+
+
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
