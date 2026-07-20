@@ -32,7 +32,7 @@ const MASTER_EMAIL = 'hackedbydymo@gmail.com';
  
 function getUserEmail(req: Request): string | undefined {
   const localUserId = (req.session as any)?.localUserId;
-  if (localUserId) return undefined;
+  if (localUserId) return undefined; // <--- Asegúrate de que diga 'return undefined'
   return (req.user as any)?.email;
 }
 
