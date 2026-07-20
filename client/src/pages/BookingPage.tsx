@@ -255,7 +255,7 @@ export default function BookingPage({ userId }: BookingPageProps) {
                 )}
                 {settingsData.social_linkedin && (
                   <a href={settingsData.social_linkedin} target="_blank" rel="noopener noreferrer" data-testid="link-social-linkedin" className="text-[#0A66C2] hover:opacity-75 transition-opacity">
-                    <SiLinkedin className="w-5 h-5" />
+                    <FaLinkedin className="w-5 h-5" />
                   </a>
                 )}
               </div>
