@@ -1,6 +1,6 @@
 import cron from "node-cron";
 import { storage } from "./storage";
-import { sendAttendanceReport, getSmtpConfig } from "./email";
+import { sendAttendanceReport, getEmailConfig } from "./email";
 import { log } from "./index";
 
 export function getReportPeriodDates(period: string): { from: string; to: string; label: string } {
@@ -155,10 +155,10 @@ export function startScheduler(userIds: () => Promise<string[]>) {
             if (nowLocal.getUTCDate() !== targetDom) continue;
           }
 
-          // Time matches – send report
-          const smtp = getSmtpConfig();
-          if (!smtp) {
-            log(`[report] SMTP not configured – skipping for user ${userId}`);
+          // Time matches – send report via Resend
+          const emailConfig = getEmailConfig();
+          if (!emailConfig) {
+            log(`[report] RESEND_API_KEY not configured – skipping for user ${userId}`);
             continue;
           }
 
@@ -167,7 +167,7 @@ export function startScheduler(userIds: () => Promise<string[]>) {
           if (settings.report_only_inout === "true") {
             records = records.filter(r => r.type === "entrada" || r.type === "salida");
           }
-          await sendAttendanceReport(smtp, email, records, label);
+          await sendAttendanceReport(emailConfig, email, records, label);
           log(`[report] Sent ${frequency} report to ${email} for user ${userId} (${records.length} records, period: ${settings.report_period ?? "week"})`);
         } catch (err: any) {
           log(`[report] Error for user ${userId}: ${err.message}`);
