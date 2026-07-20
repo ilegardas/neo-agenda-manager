@@ -29,7 +29,7 @@ function getUserId(req: Request): string {
 }
 
 const MASTER_EMAIL = 'hackedbydymo@gmail.com';
-
+ 
 function getUserEmail(req: Request): string | undefined {
   const localUserId = (req.session as any)?.localUserId;
   if (localUserId) return undefined;
