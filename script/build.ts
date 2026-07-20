@@ -19,7 +19,6 @@ const allowlist = [
   "memorystore",
   "multer",
   "nanoid",
-  "nodemailer",
   "openai",
   "passport",
   "passport-local",
@@ -27,7 +26,6 @@ const allowlist = [
   "stripe",
   "uuid",
   "ws",
-  "xlsx",
   "zod",
   "zod-validation-error",
 ];
