@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-import * as XLSX from "xlsx";
+import XLSX from "xlsx";
 import type { AttendanceRecord } from "@shared/schema";
 
 export interface EmailConfig {
