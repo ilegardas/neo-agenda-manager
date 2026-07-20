@@ -22,6 +22,7 @@ import { getReportPeriodDates } from "./scheduler";
 import { db } from "./db";
 import { eq, or } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { getEmailConfig, sendAttendanceReport } from "./email";
 
 function getUserId(req: Request): string {
   const localUserId = (req.session as any)?.localUserId;
@@ -36,7 +37,6 @@ function getUserEmail(req: Request): string | undefined {
   if (localUserId) return undefined;
   return (req.user as any)?.email;
 }
-
 
 function isMasterRequest(req: Request): boolean {
   return getUserEmail(req) === MASTER_EMAIL;
@@ -105,46 +105,46 @@ export async function registerRoutes(
 
   // 2. Iniciar Sesión (Soporta búsqueda por usuario o email)
   app.post("/api/auth/login", async (req, res) => {
-  try {
-    const { username, password } = req.body;
+    try {
+      const { username, password } = req.body;
 
-    if (!username || !password) {
-      return res.status(400).json({ message: "Usuario y contraseña requeridos" });
-    }
-
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(or(eq(users.username, username), eq(users.email, username)));
-
-    if (!user) {
-      return res.status(401).json({ message: "Credenciales inválidas" });
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password).catch(() => password === user.password);
-
-    if (!isPasswordValid) {
-      return res.status(401).json({ message: "Credenciales inválidas" });
-    }
-
-    // 1. Asignar ID
-    (req.session as any).localUserId = user.id;
-
-    // 2. Guardar sesión explícitamente antes de responder
-    req.session.save((err) => {
-      if (err) {
-        console.error("[session save error]", err);
-        return res.status(500).json({ message: "Error al guardar la sesión" });
+      if (!username || !password) {
+        return res.status(400).json({ message: "Usuario y contraseña requeridos" });
       }
-      
-      const { password: _, ...safeUser } = user;
-      return res.status(200).json(safeUser);
-    });
-  } catch (err) {
-    console.error("[login error]", err);
-    return res.status(500).json({ message: "Error interno en el inicio de sesión" });
-  }
-});
+
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(or(eq(users.username, username), eq(users.email, username)));
+
+      if (!user) {
+        return res.status(401).json({ message: "Credenciales inválidas" });
+      }
+
+      const isPasswordValid = await bcrypt.compare(password, user.password).catch(() => password === user.password);
+
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: "Credenciales inválidas" });
+      }
+
+      // 1. Asignar ID
+      (req.session as any).localUserId = user.id;
+
+      // 2. Guardar sesión explícitamente antes de responder
+      req.session.save((err) => {
+        if (err) {
+          console.error("[session save error]", err);
+          return res.status(500).json({ message: "Error al guardar la sesión" });
+        }
+        
+        const { password: _, ...safeUser } = user;
+        return res.status(200).json(safeUser);
+      });
+    } catch (err) {
+      console.error("[login error]", err);
+      return res.status(500).json({ message: "Error interno en el inicio de sesión" });
+    }
+  });
 
   // 3. Registro Local
   app.post("/api/auth/register", async (req, res) => {
@@ -1060,8 +1060,8 @@ export async function registerRoutes(
 
   app.get(api.attendance.getReportSchedule.path, isAuthenticated, async (req, res) => {
     const settings = await storage.getSettings(getUserId(req), ['report_enabled', 'report_email', 'report_frequency', 'report_time', 'report_day_of_week', 'report_day_of_month', 'report_period', 'report_only_inout']);
-    const { getSmtpConfig } = await import('./email');
-    res.json({ ...settings, smtp_configured: !!getSmtpConfig() });
+    const emailConfig = getEmailConfig();
+    res.json({ ...settings, smtp_configured: !!emailConfig });
   });
 
   app.put(api.attendance.saveReportSchedule.path, isAuthenticated, async (req, res) => {
@@ -1089,18 +1089,20 @@ export async function registerRoutes(
       const settings = await storage.getSettings(uid, ['report_email', 'report_period', 'report_only_inout']);
       const email = settings.report_email;
       if (!email) return res.status(400).json({ error: 'No hay correo configurado' });
-      const { getSmtpConfig, sendAttendanceReport } = await import('./email');
-      const smtp = getSmtpConfig();
-      if (!smtp) return res.status(400).json({ error: 'SMTP no configurado.' });
+
+      const emailConfig = getEmailConfig();
+      if (!emailConfig) return res.status(400).json({ error: 'RESEND_API_KEY no está configurada.' });
+
       const { from, to, label } = getReportPeriodDates(settings.report_period ?? 'week');
       let records = await storage.getAttendances(uid, from, to);
       if (settings.report_only_inout === 'true') {
         records = records.filter(r => r.type === 'entrada' || r.type === 'salida');
       }
-      await sendAttendanceReport(smtp, email, records, `Prueba – ${label}`);
+      await sendAttendanceReport(emailConfig, email, records, `Prueba – ${label}`);
       res.json({ ok: true });
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      console.error('[report test error]', err);
+      res.status(500).json({ error: err.message || 'Error al enviar la prueba del reporte' });
     }
   });
 
