@@ -41,18 +41,18 @@ app.use(
 app.use(express.urlencoded({ extended: false }));
 
 // Manejo tradicional de sesiones HTTP en Express
-// 2. Configuración de Sesión
 app.use(
   session({
     name: "sid",
     secret: process.env.SESSION_SECRET || "clave_secreta_local_desarrollo",
     resave: false,
     saveUninitialized: false,
+    proxy: true, // Notifica a express-session que está detrás de un proxy HTTPS
     cookie: {
-      secure: process.env.NODE_ENV === "production", // Funciona gracias a trust proxy = 1
+      secure: process.env.NODE_ENV === "production",
       httpOnly: true,
-      sameSite: "lax", // Evita que Chrome deseche la cookie tras el POST
-      maxAge: 24 * 60 * 60 * 1000,
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000, // 24 horas
     },
   })
 );
