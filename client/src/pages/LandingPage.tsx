@@ -21,7 +21,8 @@ import {
   CalendarCheck, ShoppingBag, Star, ArrowRight, Sparkles,
   Plus, Minus, ShoppingCart, Trash2, MapPin
 } from "lucide-react";
-import { SiWhatsapp, SiFacebook, SiInstagram, SiTiktok, SiYoutube, SiLinkedin } from "react-icons/si";
+import { SiWhatsapp, SiFacebook, SiInstagram, SiTiktok, SiYoutube } from "react-icons/si";
+import { FaLinkedin } from "react-icons/fa";
 import { cn } from "@/lib/utils";
 
 const GOOGLE_FONTS: Record<string, string> = {
@@ -362,7 +363,7 @@ export default function LandingPage({ userId }: Props) {
           {socialLinkedin && (
             <a href={socialLinkedin} target="_blank" rel="noopener noreferrer">
               <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 transition-all hover:scale-105 text-white">
-                <SiLinkedin className="w-3.5 h-3.5 text-blue-400" /> LinkedIn
+                <FaLinkedin className="w-3.5 h-3.5 text-blue-400" /> LinkedIn
               </button>
             </a>
           )}
