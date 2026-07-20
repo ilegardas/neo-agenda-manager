@@ -19,7 +19,8 @@ import {
 import { stripe, PLANS, getPriceIds, type PlanKey } from "./stripe";
 import { getReportPeriodDates } from "./scheduler";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 
 function getUserId(req: Request): string {
   const localUserId = (req.session as any)?.localUserId;
@@ -78,7 +79,9 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
-  // === AUTHENTICATION STATUS ENDPOINT (Breaks 304 Cache Loop) ===
+  // === AUTHENTICATION ENDPOINTS (NATIVE LOCAL AUTH) ===
+
+  // 1. Estado de Sesión del Usuario
   app.get("/api/auth/user", async (req, res) => {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     res.setHeader("Pragma", "no-cache");
@@ -96,6 +99,95 @@ export async function registerRoutes(
     
     const { password, ...safeUser } = user;
     res.json(safeUser);
+  });
+
+  // 2. Iniciar Sesión (Soporta búsqueda por usuario o email)
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+
+      if (!username || !password) {
+        return res.status(400).json({ message: "Usuario y contraseña requeridos" });
+      }
+
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(or(eq(users.username, username), eq(users.email, username)));
+
+      if (!user) {
+        return res.status(401).json({ message: "Credenciales inválidas" });
+      }
+
+      // Comparación segura con bcrypt (fallback a texto plano para migración legacy si aplica)
+      const isPasswordValid = await bcrypt.compare(password, user.password).catch(() => password === user.password);
+
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: "Credenciales inválidas" });
+      }
+
+      // Guardar ID en sesión express
+      (req.session as any).localUserId = user.id;
+
+      const { password: _, ...safeUser } = user;
+      return res.status(200).json(safeUser);
+    } catch (err) {
+      console.error("[login error]", err);
+      return res.status(500).json({ message: "Error interno en el inicio de sesión" });
+    }
+  });
+
+  // 3. Registro Local
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { username, email, password, firstName, lastName } = req.body;
+
+      if (!username || !password) {
+        return res.status(400).json({ message: "Usuario y contraseña son requeridos" });
+      }
+
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(or(eq(users.username, username), eq(users.email, email || '')));
+
+      if (existingUser) {
+        return res.status(400).json({ message: "El usuario o correo ya está registrado" });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          username,
+          email: email || null,
+          password: hashedPassword,
+          firstName: firstName || null,
+          lastName: lastName || null,
+          role: email === MASTER_EMAIL ? 'admin' : 'user',
+        })
+        .returning();
+
+      (req.session as any).localUserId = newUser.id;
+
+      const { password: _, ...safeUser } = newUser;
+      return res.status(201).json(safeUser);
+    } catch (err) {
+      console.error("[register error]", err);
+      return res.status(500).json({ message: "Error al registrar el usuario" });
+    }
+  });
+
+  // 4. Cerrar Sesión
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Error al cerrar sesión" });
+      }
+      res.clearCookie("connect.sid");
+      return res.status(200).json({ message: "Sesión cerrada correctamente" });
+    });
   });
 
   // === AUTHENTICATED ROUTES (own data) ===
@@ -374,7 +466,7 @@ export async function registerRoutes(
     res.json({ received: true });
   });
 
-  // === PUBLIC ROUTES (for booking pages) ===
+  // === PUBLIC ROUTES ===
 
   app.get(api.public.userInfo.path, async (req, res) => {
     const [user] = await db.select().from(users).where(eq(users.id, Number(req.params.userId)));
@@ -595,7 +687,7 @@ export async function registerRoutes(
     res.json(data);
   });
 
-  // === MENU ROUTES (private) ===
+  // === MENU ROUTES ===
 
   app.get(api.menu.list.path, isAuthenticated, async (req, res) => {
     const items = await storage.getMenuItems(getUserId(req));
@@ -745,7 +837,7 @@ export async function registerRoutes(
     }
   });
 
-  // === MINUTAS ROUTES (private) ===
+  // === MINUTAS ROUTES ===
 
   app.get(api.minutas.list.path, isAuthenticated, async (req, res) => {
     const data = await storage.getMinutas(getUserId(req));
