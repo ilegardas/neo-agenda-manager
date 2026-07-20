@@ -1,36 +1,60 @@
-
 import type { Express, Request, Response, NextFunction } from "express";
 import { type Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import { insertAvailabilityRuleSchema, insertAppointmentSchema, insertMenuItemSchema, insertSucursalSchema, insertEmployeeSchema, insertScheduleSchema, insertCatalogPhotoSchema, insertMinutaSchema, insertChecklistSchema, insertChecklistItemSchema } from "@shared/schema";
-import { isAuthenticated } from "./replit_integrations/auth";
-import { authStorage } from "./replit_integrations/auth/storage";
+import { 
+  insertAvailabilityRuleSchema, 
+  insertAppointmentSchema, 
+  insertMenuItemSchema, 
+  insertSucursalSchema, 
+  insertEmployeeSchema, 
+  insertScheduleSchema, 
+  insertCatalogPhotoSchema, 
+  insertMinutaSchema, 
+  insertChecklistSchema, 
+  insertChecklistItemSchema,
+  users 
+} from "@shared/schema";
 import { stripe, PLANS, getPriceIds, type PlanKey } from "./stripe";
 import { getReportPeriodDates } from "./scheduler";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 function getUserId(req: Request): string {
   const localUserId = (req.session as any)?.localUserId;
-  if (localUserId) return localUserId;
-  return (req.user as any)?.claims?.sub;
+  if (localUserId) return String(localUserId);
+  return (req.user as any)?.id ? String((req.user as any).id) : "";
 }
 
 const MASTER_EMAIL = 'hackedbydymo@gmail.com';
 
 function getUserEmail(req: Request): string | undefined {
   const localUserId = (req.session as any)?.localUserId;
-  if (localUserId) return undefined; // local users don't have claims email
-  return (req.user as any)?.claims?.email;
+  if (localUserId) return undefined;
+  return (req.user as any)?.email;
 }
 
 function isMasterRequest(req: Request): boolean {
   return getUserEmail(req) === MASTER_EMAIL;
 }
 
+function isAuthenticated(req: Request, res: Response, next: NextFunction) {
+  if (req.isAuthenticated && req.isAuthenticated()) {
+    return next();
+  }
+  if ((req.session as any)?.localUserId) {
+    return next();
+  }
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  return res.status(401).json({ message: "No autorizado" });
+}
+
 async function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const userId = getUserId(req);
-  const user = await authStorage.getUser(userId);
+  if (!userId) return res.status(401).json({ message: "No autorizado" });
+  
+  const [user] = await db.select().from(users).where(eq(users.id, Number(userId)));
   if (!user || user.role !== 'admin') {
     return res.status(403).json({ message: "Forbidden" });
   }
@@ -40,7 +64,9 @@ async function requireAdmin(req: Request, res: Response, next: NextFunction) {
 async function requireMaster(req: Request, res: Response, next: NextFunction) {
   if (isMasterRequest(req)) return next();
   const userId = getUserId(req);
-  const user = await authStorage.getUser(userId);
+  if (!userId) return res.status(401).json({ message: "No autorizado" });
+
+  const [user] = await db.select().from(users).where(eq(users.id, Number(userId)));
   if (!user || user.email !== MASTER_EMAIL) {
     return res.status(403).json({ message: "Forbidden" });
   }
@@ -51,6 +77,26 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  // === AUTHENTICATION STATUS ENDPOINT (Breaks 304 Cache Loop) ===
+  app.get("/api/auth/user", async (req, res) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json(null);
+    }
+    
+    const [user] = await db.select().from(users).where(eq(users.id, Number(userId)));
+    if (!user) {
+      return res.status(401).json(null);
+    }
+    
+    const { password, ...safeUser } = user;
+    res.json(safeUser);
+  });
 
   // === AUTHENTICATED ROUTES (own data) ===
 
@@ -159,7 +205,7 @@ export async function registerRoutes(
       return res.json({ status: 'active', plan: 'admin', isAdmin: true });
     }
     const userId = getUserId(req);
-    const user = await authStorage.getUser(userId);
+    const [user] = await db.select().from(users).where(eq(users.id, Number(userId)));
     if (user?.email === MASTER_EMAIL || user?.role === 'admin') {
       return res.json({ status: 'active', plan: 'admin', isAdmin: true });
     }
@@ -184,7 +230,7 @@ export async function registerRoutes(
     const { plan } = req.body as { plan: PlanKey };
     if (!PLANS[plan]) return res.status(400).json({ message: "Plan inválido" });
 
-    const user = await authStorage.getUser(userId);
+    const [user] = await db.select().from(users).where(eq(users.id, Number(userId)));
     const prices = getPriceIds();
 
     let sub = await storage.getSubscription(userId);
@@ -331,7 +377,7 @@ export async function registerRoutes(
   // === PUBLIC ROUTES (for booking pages) ===
 
   app.get(api.public.userInfo.path, async (req, res) => {
-    const user = await authStorage.getUser(req.params.userId);
+    const [user] = await db.select().from(users).where(eq(users.id, Number(req.params.userId)));
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json({
       id: user.id,
@@ -342,7 +388,7 @@ export async function registerRoutes(
 
   app.get(api.public.userSubscriptionStatus.path, async (req, res) => {
     const userId = req.params.userId;
-    const user = await authStorage.getUser(userId);
+    const [user] = await db.select().from(users).where(eq(users.id, Number(userId)));
     if (!user) return res.status(404).json({ active: false });
     if (user.email === MASTER_EMAIL || user.role === 'admin') return res.json({ active: true });
     const sub = await storage.getSubscription(userId);
@@ -368,7 +414,6 @@ export async function registerRoutes(
     res.json(data);
   });
 
-  // Dynamic PWA manifest for each user's landing page
   app.get('/api/users/:userId/pwa-manifest.json', async (req, res) => {
     try {
       const { userId } = req.params;
@@ -397,7 +442,6 @@ export async function registerRoutes(
     }
   });
 
-  // Serve user profile image as binary for PWA icon
   app.get('/api/users/:userId/pwa-icon', async (req, res) => {
     try {
       const profileImage = await storage.getSetting(req.params.userId, 'profile_image');
@@ -438,8 +482,6 @@ export async function registerRoutes(
   // === ADMIN ROUTES ===
 
   app.get(api.admin.users.path, isAuthenticated, requireMaster, async (_req, res) => {
-    const { users } = await import("@shared/schema");
-    const { db } = await import("./db");
     const allUsers = await db.select().from(users);
     res.json(allUsers.map(u => ({
       id: u.id,
@@ -510,17 +552,18 @@ export async function registerRoutes(
     if (!role || !['admin', 'user'].includes(role)) {
       return res.status(400).json({ error: 'Rol inválido' });
     }
-    const targetUser = await authStorage.getUser(req.params.userId);
+    const [targetUser] = await db.select().from(users).where(eq(users.id, Number(req.params.userId)));
     if (!targetUser) return res.status(404).json({ error: 'Usuario no encontrado' });
     if (targetUser.email === MASTER_EMAIL) {
       return res.status(403).json({ error: 'No se puede cambiar el rol del usuario master' });
     }
-    const updated = await authStorage.updateUserRole(req.params.userId, role);
+    
+    const [updated] = await db.update(users).set({ role }).where(eq(users.id, targetUser.id)).returning();
     res.json({ id: updated.id, role: updated.role });
   });
 
   app.post(api.admin.grantTrial.path, isAuthenticated, requireMaster, async (req, res) => {
-    const targetUser = await authStorage.getUser(req.params.userId);
+    const [targetUser] = await db.select().from(users).where(eq(users.id, Number(req.params.userId)));
     if (!targetUser) return res.status(404).json({ error: 'Usuario no encontrado' });
     if (targetUser.email === MASTER_EMAIL) return res.status(400).json({ error: 'El usuario master no necesita período de prueba' });
     const sub = await storage.grantTrial(req.params.userId, 7);
@@ -529,7 +572,7 @@ export async function registerRoutes(
 
   app.delete(api.admin.deleteUser.path, isAuthenticated, requireMaster, async (req, res) => {
     try {
-      const targetUser = await authStorage.getUser(req.params.userId);
+      const [targetUser] = await db.select().from(users).where(eq(users.id, Number(req.params.userId)));
       if (!targetUser) return res.status(404).json({ error: 'Usuario no encontrado' });
       if (targetUser.email === MASTER_EMAIL) {
         return res.status(403).json({ error: 'No se puede eliminar el usuario master' });
@@ -594,7 +637,6 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
-  // === PUBLIC MENU ROUTE ===
   app.get(api.public.userMenu.path, async (req, res) => {
     const items = await storage.getMenuItems(req.params.userId);
     const legend = await storage.getSetting(req.params.userId, 'menu_legend');
@@ -642,7 +684,6 @@ export async function registerRoutes(
         return res.status(400).json({ error: 'Se requiere empleado + PIN o código de barras' });
       }
 
-      // Load sucursal once (for GPS validation + tolerance)
       let empSucursal: any = null;
       if (emp.sucursalId) {
         const sucs = await storage.getSucursales(req.params.userId);
@@ -659,21 +700,13 @@ export async function registerRoutes(
         }
       }
 
-      const ip =
-        (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
-        req.socket.remoteAddress ||
-        'desconocida';
-
+      const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || 'desconocida';
       const now = new Date();
-      // Prefer client-supplied local date/time (avoids UTC offset issues)
-      console.log('[checkin] localDate=%s localTime=%s localDayOfWeek=%s', localDate, localTime, localDayOfWeek);
       const checkDate = localDate || now.toISOString().slice(0, 10);
-      const checkTime = localTime || now.toISOString().slice(11, 19); // fallback: UTC but at least consistent
+      const checkTime = localTime || now.toISOString().slice(11, 19);
 
-      // Retardo detection — only for 'entrada' when employee has a schedule
       const comentario = (req.body.comentario as string | undefined) || null;
       let isRetardo = false;
-      // Schedule days use numeric strings: "1"=Mon … "6"=Sat, "0"=Sun (JS getDay format)
       if (type === 'entrada' && emp.scheduleId) {
         const scheds = await storage.getSchedules(req.params.userId);
         const schedule = scheds.find(s => s.id === emp!.scheduleId);
@@ -753,14 +786,11 @@ export async function registerRoutes(
   });
 
   app.post(api.checklists.create.path, isAuthenticated, async (req, res) => {
-    console.log('[CHECKLIST POST] hit, body:', JSON.stringify(req.body), 'userId:', getUserId(req));
     try {
       const input = insertChecklistSchema.parse({ ...req.body, userId: getUserId(req) });
       const created = await storage.createChecklist(input);
-      console.log('[CHECKLIST POST] created:', created);
       res.status(201).json(created);
     } catch (err) {
-      console.error('[CHECKLIST POST] error:', err);
       if (err instanceof z.ZodError) return res.status(400).json({ error: err.errors[0].message });
       res.status(500).json({ error: 'Error al crear checklist' });
     }
@@ -809,7 +839,7 @@ export async function registerRoutes(
     res.json({ ok: true });
   });
 
-  // === SUCURSALES ROUTES (private) ===
+  // === SUCURSALES ROUTES ===
 
   app.get(api.attendance.listSucursales.path, isAuthenticated, async (req, res) => {
     const data = await storage.getSucursales(getUserId(req));
@@ -843,7 +873,7 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
-  // === ATTENDANCE ROUTES (private) ===
+  // === ATTENDANCE EMPLOYEES & RECORDS ===
 
   app.get(api.attendance.listEmployees.path, isAuthenticated, async (req, res) => {
     const emps = await storage.getEmployees(getUserId(req));
@@ -911,41 +941,24 @@ export async function registerRoutes(
 
   app.get(api.attendance.listRecords.path, isAuthenticated, async (req, res) => {
     const { from, to, employeeId } = req.query as Record<string, string>;
-    const records = await storage.getAttendances(
-      getUserId(req),
-      from || undefined,
-      to || undefined,
-      employeeId ? Number(employeeId) : undefined
-    );
+    const records = await storage.getAttendances(getUserId(req), from || undefined, to || undefined, employeeId ? Number(employeeId) : undefined);
     res.json(records);
   });
 
   app.get(api.attendance.exportRecords.path, isAuthenticated, async (req, res) => {
     const { from, to, employeeId } = req.query as Record<string, string>;
-    const records = await storage.getAttendances(
-      getUserId(req),
-      from || undefined,
-      to || undefined,
-      employeeId ? Number(employeeId) : undefined
-    );
-    // Build CSV
-    const rows = [
-      ['ID', 'Empleado', 'Fecha', 'Hora', 'IP'],
-      ...records.map(r => [r.id, r.employeeName, r.checkDate, r.checkTime, r.ip]),
-    ];
+    const records = await storage.getAttendances(getUserId(req), from || undefined, to || undefined, employeeId ? Number(employeeId) : undefined);
+    const rows = [['ID', 'Empleado', 'Fecha', 'Hora', 'IP'], ...records.map(r => [r.id, r.employeeName, r.checkDate, r.checkTime, r.ip])];
     const csv = rows.map(r => r.join(',')).join('\n');
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="asistencias.csv"');
-    res.send('\uFEFF' + csv); // BOM for Excel
+    res.send('\uFEFF' + csv);
   });
 
-  // ── Report schedule ──────────────────────────────────────────────────────────
+  // === REPORT SCHEDULE ===
 
   app.get(api.attendance.getReportSchedule.path, isAuthenticated, async (req, res) => {
-    const settings = await storage.getSettings(getUserId(req), [
-      'report_enabled', 'report_email', 'report_frequency',
-      'report_time', 'report_day_of_week', 'report_day_of_month', 'report_period', 'report_only_inout',
-    ]);
+    const settings = await storage.getSettings(getUserId(req), ['report_enabled', 'report_email', 'report_frequency', 'report_time', 'report_day_of_week', 'report_day_of_month', 'report_period', 'report_only_inout']);
     const { getSmtpConfig } = await import('./email');
     res.json({ ...settings, smtp_configured: !!getSmtpConfig() });
   });
@@ -977,7 +990,7 @@ export async function registerRoutes(
       if (!email) return res.status(400).json({ error: 'No hay correo configurado' });
       const { getSmtpConfig, sendAttendanceReport } = await import('./email');
       const smtp = getSmtpConfig();
-      if (!smtp) return res.status(400).json({ error: 'SMTP no configurado. Contacta al administrador.' });
+      if (!smtp) return res.status(400).json({ error: 'SMTP no configurado.' });
       const { from, to, label } = getReportPeriodDates(settings.report_period ?? 'week');
       let records = await storage.getAttendances(uid, from, to);
       if (settings.report_only_inout === 'true') {
@@ -990,23 +1003,18 @@ export async function registerRoutes(
     }
   });
 
-  // ── Catalog ───────────────────────────────────────────────────────────────
+  // === CATALOG ROUTES ===
 
-  // List: metadata only (no imageData) — fast, never hangs on large blobs
   app.get(api.catalog.list.path, isAuthenticated, async (req, res) => {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     try {
-      console.log(`[catalog] GET list userId=${getUserId(req)}`);
       const photos = await storage.getCatalogPhotosMeta(getUserId(req));
-      console.log(`[catalog] GET list found ${photos.length} photos`);
       res.json(photos);
     } catch (err) {
-      console.error("[catalog] GET list error:", err);
       res.status(500).json({ message: "Error al obtener el catálogo" });
     }
   });
 
-  // Serve individual image as binary (authenticated)
   app.get('/api/catalog/:id/image', isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -1020,7 +1028,6 @@ export async function registerRoutes(
       res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
       res.send(Buffer.from(base64Data, 'base64'));
     } catch (err) {
-      console.error("[catalog] GET image error:", err);
       res.status(500).send();
     }
   });
@@ -1030,11 +1037,9 @@ export async function registerRoutes(
       const parsed = insertCatalogPhotoSchema.safeParse({ ...req.body, userId: getUserId(req) });
       if (!parsed.success) return res.status(400).json({ message: "Datos inválidos" });
       const photo = await storage.addCatalogPhoto(parsed.data);
-      // Return metadata only — client uses URL-based images
       const { imageData: _img, ...meta } = photo;
       res.status(201).json(meta);
     } catch (err) {
-      console.error("[catalog] POST error:", err);
       res.status(500).json({ message: "Error al guardar la foto" });
     }
   });
@@ -1046,17 +1051,15 @@ export async function registerRoutes(
       await storage.deleteCatalogPhoto(id, getUserId(req));
       res.status(204).send();
     } catch (err) {
-      console.error("[catalog] DELETE error:", err);
       res.status(500).json({ message: "Error al eliminar la foto" });
     }
   });
 
-  // Public catalog — metadata only
   app.get(api.public.userCatalog.path, async (req, res) => {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     try {
       const { userId } = req.params;
-      const user = await authStorage.getUser(userId);
+      const [user] = await db.select().from(users).where(eq(users.id, Number(userId)));
       if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
       const isMaster = user.email === MASTER_EMAIL || user.role === 'admin';
       if (!isMaster) {
@@ -1068,12 +1071,10 @@ export async function registerRoutes(
       const photos = await storage.getCatalogPhotosMeta(userId);
       res.json(photos);
     } catch (err) {
-      console.error("[catalog/public] GET error:", err);
       res.status(500).json({ message: "Error al obtener el catálogo" });
     }
   });
 
-  // Public image endpoint — binary image by userId + photoId
   app.get('/api/users/:userId/catalog/:photoId/image', async (req, res) => {
     try {
       const { userId } = req.params;
@@ -1088,7 +1089,6 @@ export async function registerRoutes(
       res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
       res.send(Buffer.from(base64Data, 'base64'));
     } catch (err) {
-      console.error("[catalog/public] GET image error:", err);
       res.status(500).send();
     }
   });
