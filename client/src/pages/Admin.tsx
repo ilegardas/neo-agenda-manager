@@ -2249,7 +2249,7 @@ export default function Admin({ viewingUserId }: AdminProps) {
                             />
                           </div>
                           <div className="flex items-center gap-2">
-                            <SiLinkedin className="w-5 h-5 text-[#0A66C2] shrink-0" />
+                            <FaLinkedin className="w-5 h-5 text-[#0A66C2] shrink-0" />
                             <Input
                               placeholder="https://linkedin.com/in/tu-perfil"
                               value={socialLinkedin}
