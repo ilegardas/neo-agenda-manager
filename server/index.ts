@@ -19,6 +19,10 @@ process.on("unhandledRejection", (reason) => {
 const app = express();
 const httpServer = createServer(app);
 
+// OBLIGATORIO EN RAILWAY: Permite que express-session reconozca HTTPS tras el proxy
+app.set("trust proxy", 1);
+
+
 declare module "http" {
   interface IncomingMessage {
     rawBody: unknown;
