@@ -190,11 +190,20 @@ export async function registerRoutes(
 
   // 4. Cerrar Sesión
   app.post("/api/auth/logout", (req, res) => {
+    // Limpiar variables locales de la sesión
+    if (req.session) {
+      (req.session as any).localUserId = null;
+    }
+  
     req.session.destroy((err) => {
       if (err) {
+        console.error("[logout error]", err);
         return res.status(500).json({ message: "Error al cerrar sesión" });
       }
-      res.clearCookie("connect.sid");
+  
+      // Limpiar cookie explícitamente en la raíz y con el nombre por defecto
+      res.clearCookie("connect.sid", { path: "/" });
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
       return res.status(200).json({ message: "Sesión cerrada correctamente" });
     });
   });
