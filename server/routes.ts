@@ -103,39 +103,46 @@ export async function registerRoutes(
 
   // 2. Iniciar Sesión (Soporta búsqueda por usuario o email)
   app.post("/api/auth/login", async (req, res) => {
-    try {
-      const { username, password } = req.body;
+  try {
+    const { username, password } = req.body;
 
-      if (!username || !password) {
-        return res.status(400).json({ message: "Usuario y contraseña requeridos" });
+    if (!username || !password) {
+      return res.status(400).json({ message: "Usuario y contraseña requeridos" });
+    }
+
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(or(eq(users.username, username), eq(users.email, username)));
+
+    if (!user) {
+      return res.status(401).json({ message: "Credenciales inválidas" });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password).catch(() => password === user.password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: "Credenciales inválidas" });
+    }
+
+    // 1. Asignar ID
+    (req.session as any).localUserId = user.id;
+
+    // 2. Guardar sesión explícitamente antes de responder
+    req.session.save((err) => {
+      if (err) {
+        console.error("[session save error]", err);
+        return res.status(500).json({ message: "Error al guardar la sesión" });
       }
-
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(or(eq(users.username, username), eq(users.email, username)));
-
-      if (!user) {
-        return res.status(401).json({ message: "Credenciales inválidas" });
-      }
-
-      // Comparación segura con bcrypt (fallback a texto plano para migración legacy si aplica)
-      const isPasswordValid = await bcrypt.compare(password, user.password).catch(() => password === user.password);
-
-      if (!isPasswordValid) {
-        return res.status(401).json({ message: "Credenciales inválidas" });
-      }
-
-      // Guardar ID en sesión express
-      (req.session as any).localUserId = user.id;
-
+      
       const { password: _, ...safeUser } = user;
       return res.status(200).json(safeUser);
-    } catch (err) {
-      console.error("[login error]", err);
-      return res.status(500).json({ message: "Error interno en el inicio de sesión" });
-    }
-  });
+    });
+  } catch (err) {
+    console.error("[login error]", err);
+    return res.status(500).json({ message: "Error interno en el inicio de sesión" });
+  }
+});
 
   // 3. Registro Local
   app.post("/api/auth/register", async (req, res) => {
