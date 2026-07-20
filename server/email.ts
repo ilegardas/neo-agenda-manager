@@ -1,53 +1,32 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import * as XLSX from "xlsx";
 import type { AttendanceRecord } from "@shared/schema";
 
-export interface SmtpConfig {
-  host: string;
-  port: number;
-  user: string;
-  pass: string;
+export interface EmailConfig {
+  apiKey: string;
   from: string;
 }
 
-export function getSmtpConfig(): SmtpConfig | null {
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  if (!user || !pass) return null;
-
-  let host = process.env.SMTP_HOST;
-  if (!host) {
-    const domain = user.split("@")[1]?.toLowerCase() ?? "";
-    if (domain === "gmail.com") host = "smtp.gmail.com";
-    else if (["hotmail.com", "outlook.com", "live.com"].includes(domain)) host = "smtp.office365.com";
-    else if (domain === "yahoo.com") host = "smtp.mail.yahoo.com";
-    else return null;
-  }
+export function getEmailConfig(): EmailConfig | null {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return null;
 
   return {
-    host,
-    port: parseInt(process.env.SMTP_PORT || "587", 10),
-    user,
-    pass,
-    from: process.env.SMTP_FROM || user,
+    apiKey,
+    from: process.env.EMAIL_FROM || "MiGestión <onboarding@resend.dev>",
   };
 }
 
 export async function sendPasswordResetEmail(
-  smtp: SmtpConfig,
+  config: EmailConfig,
   toEmail: string,
   resetUrl: string,
 ): Promise<void> {
-  const transporter = nodemailer.createTransport({
-    host: smtp.host,
-    port: smtp.port,
-    secure: smtp.port === 465,
-    auth: { user: smtp.user, pass: smtp.pass },
-  });
+  const resend = new Resend(config.apiKey);
 
-  await transporter.sendMail({
-    from: `"miGestion" <${smtp.from}>`,
-    to: toEmail,
+  const { error } = await resend.emails.send({
+    from: config.from,
+    to: [toEmail],
     subject: "Recuperación de contraseña — miGestion",
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#f9fafb;border-radius:12px;">
@@ -66,6 +45,10 @@ export async function sendPasswordResetEmail(
       </div>
     `,
   });
+
+  if (error) {
+    throw new Error(`Error al enviar correo con Resend: ${error.message}`);
+  }
 }
 
 function buildExcel(records: AttendanceRecord[]): Buffer {
@@ -90,7 +73,7 @@ function buildExcel(records: AttendanceRecord[]): Buffer {
     "IP",
   ];
 
-  const rows = records.map(r => ({
+  const rows = records.map((r) => ({
     ID: r.id,
     Empleado: r.employeeName,
     Sucursal: r.empSucursal ?? "",
@@ -111,25 +94,23 @@ function buildExcel(records: AttendanceRecord[]): Buffer {
 }
 
 export async function sendAttendanceReport(
-  smtp: SmtpConfig,
+  config: EmailConfig,
   toEmail: string,
   records: AttendanceRecord[],
   periodLabel: string,
 ): Promise<void> {
-  const transporter = nodemailer.createTransport({
-    host: smtp.host,
-    port: smtp.port,
-    secure: smtp.port === 465,
-    auth: { user: smtp.user, pass: smtp.pass },
-  });
-
+  const resend = new Resend(config.apiKey);
   const excelBuffer = buildExcel(records);
   const now = new Date();
-  const dateStr = now.toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" });
+  const dateStr = now.toLocaleDateString("es-MX", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
-  await transporter.sendMail({
-    from: `"Checador de Asistencia" <${smtp.from}>`,
-    to: toEmail,
+  const { error } = await resend.emails.send({
+    from: config.from,
+    to: [toEmail],
     subject: `Reporte de Asistencia – ${periodLabel} (${dateStr})`,
     html: `
       <p>Hola,</p>
@@ -143,8 +124,11 @@ export async function sendAttendanceReport(
       {
         filename: `asistencias_${now.toISOString().slice(0, 10)}.xlsx`,
         content: excelBuffer,
-        contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       },
     ],
   });
+
+  if (error) {
+    throw new Error(`Error al enviar reporte con Resend: ${error.message}`);
+  }
 }
