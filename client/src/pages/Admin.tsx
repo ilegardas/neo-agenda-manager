@@ -176,7 +176,7 @@ export default function AdminDashboard() {
                 <SiInstagram className="h-5 w-5 text-pink-500" />
                 <SiTiktok className="h-5 w-5" />
                 <SiYoutube className="h-5 w-5 text-red-600" />
-                <SiLinkedin className="h-5 w-5 text-blue-700" />
+                <FaLinkedin className="h-5 w-5 text-blue-700" />
               </div>
             </CardContent>
           </Card>
