@@ -15,11 +15,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Trash2, CheckCircle, XCircle, Clock, Calendar, Settings, Pencil, MessageCircle, Save, LogOut, Users, Link2, Copy, ChevronDown, ArrowLeft, ExternalLink, CreditCard, Loader2, Crown, AlertCircle, UserCircle, Upload, Camera, Sun, Moon, UtensilsCrossed, Plus, ImagePlus, Package, Eye, EyeOff, FileSpreadsheet, Search, Download, BarChart3, X, UserCheck, Images, ZoomIn, ChevronLeft, ChevronRight, Globe, Palette, Layout, RotateCcw, MapPin, Printer, QrCode, NotebookPen, ClipboardList } from "lucide-react";
+import { Trash2, CheckCircle, XCircle, Clock, Calendar, Settings, Pencil, MessageCircle, Save, LogOut, Users, Link2, Copy, ChevronDown, ArrowLeft, ExternalLink, CreditCard, Loader2, Crown, AlertCircle, UserCircle, Upload, Camera, Sun, Moon, UtensilsCrossed, Plus, ImagePlus, Package, Eye, EyeOff, FileSpreadsheet, Search, Download, BarChart3, X, UserCheck, Images, ZoomIn, ChevronLeft, ChevronRight, Globe, Palette, Layout, RotateCcw, MapPin, Printer, QrCode, NotebookPen, ClipboardList, FolderKanban } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { AttendanceTab } from "@/components/AttendanceTab";
 import { MinutasTab } from "@/components/MinutasTab";
 import { ChecklistTab } from "@/components/ChecklistTab";
+import { ScrumTab } from "@/components/ScrumTab";
 import { 
   SiWhatsapp, 
   SiFacebook, 
@@ -392,7 +393,7 @@ export default function Admin({ viewingUserId }: AdminProps) {
     setSocialTiktok(settingsData.social_tiktok || "");
     setSocialYoutube(settingsData.social_youtube || "");
     setSocialLinkedin(settingsData.social_linkedin || "");
-      setGoogleMapsUrl(settingsData.google_maps_url || "");
+    setGoogleMapsUrl(settingsData.google_maps_url || "");
     setLandingBgColor(settingsData.landing_bg_color || "#0f172a");
     setLandingContainerColor(settingsData.landing_container_color || "#1e293b");
     setLandingTextColor(settingsData.landing_text_color || "#ffffff");
@@ -980,6 +981,10 @@ export default function Admin({ viewingUserId }: AdminProps) {
               <ClipboardList className="w-3.5 h-3.5 shrink-0" />
               <span>Checklist</span>
             </TabsTrigger>
+            <TabsTrigger value="scrum" className="rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary font-medium px-2.5 py-1.5 flex items-center gap-1.5 text-xs sm:text-sm" data-testid="tab-scrum">
+              <FolderKanban className="w-3.5 h-3.5 shrink-0" />
+              <span>Scrum</span>
+            </TabsTrigger>
             {!isViewingOther && (
               <TabsTrigger value="landing" className="rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary font-medium px-2.5 py-1.5 flex items-center gap-1.5 text-xs sm:text-sm" data-testid="tab-landing">
                 <Globe className="w-3.5 h-3.5 shrink-0" />
@@ -1404,7 +1409,7 @@ export default function Admin({ viewingUserId }: AdminProps) {
                           const svg = el.querySelector("svg")?.outerHTML || "";
                           const url = `${window.location.origin}/menu/${targetUserId}`;
                           win.document.write(`<!DOCTYPE html><html><head><title>QR Menú</title><style>
-                            body{margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;background:#fff;padding:24px;box-sizing:border-box;}
+                            body{margin:0;display:flex;flex-direction:column;align-items:center;justify-center:center;min-height:100vh;font-family:sans-serif;background:#fff;padding:24px;box-sizing:border-box;}
                             svg{width:260px;height:260px;}
                             p{margin-top:12px;font-size:12px;color:#555;text-align:center;word-break:break-all;max-width:260px;}
                             h2{font-size:18px;font-weight:700;margin-bottom:8px;color:#0f172a;}
@@ -1752,6 +1757,10 @@ export default function Admin({ viewingUserId }: AdminProps) {
             <ChecklistTab userId={targetUserId} />
           </TabsContent>
 
+          <TabsContent value="scrum" className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <ScrumTab userId={targetUserId} />
+          </TabsContent>
+
           {/* ── Landing Page ── */}
           {!isViewingOther && (
             <TabsContent value="landing" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -2010,7 +2019,7 @@ export default function Admin({ viewingUserId }: AdminProps) {
                     <Label className="text-sm font-medium mb-3 block">Tipografía</Label>
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                       {[
-                        { value: "inter",       label: "Inter",       style: "system-ui, sans-serif",          desc: "Moderna" },
+                        { value: "inter",       label: "Inter",       style: "system-ui, sans-serif",        desc: "Moderna" },
                         { value: "montserrat",  label: "Montserrat",  style: "'Montserrat', sans-serif",       desc: "Limpia" },
                         { value: "lato",        label: "Lato",        style: "'Lato', sans-serif",             desc: "Amigable" },
                         { value: "playfair",    label: "Playfair",    style: "'Playfair Display', serif",      desc: "Elegante" },
