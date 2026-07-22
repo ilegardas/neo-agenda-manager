@@ -660,18 +660,35 @@ export async function registerRoutes(
   });
 
   app.patch(api.admin.updateUserRole.path, isAuthenticated, requireMaster, async (req, res) => {
-    const { role } = req.body as { role: 'admin' | 'user' };
-    if (!role || !['admin', 'user'].includes(role)) {
-      return res.status(400).json({ error: 'Rol inválido' });
+    try {
+      const { role } = req.body as { role: 'admin' | 'user' };
+      if (!role || !['admin', 'user'].includes(role)) {
+        return res.status(400).json({ error: 'Rol inválido' });
+      }
+
+      const targetId = Number(req.params.userId);
+      if (isNaN(targetId)) {
+        return res.status(400).json({ error: 'ID de usuario inválido' });
+      }
+
+      const [targetUser] = await db.select().from(users).where(eq(users.id, targetId));
+      if (!targetUser) return res.status(404).json({ error: 'Usuario no encontrado' });
+      
+      if (targetUser.email === MASTER_EMAIL) {
+        return res.status(403).json({ error: 'No se puede cambiar el rol del usuario master' });
+      }
+      
+      const [updated] = await db
+        .update(users)
+        .set({ role })
+        .where(eq(users.id, targetUser.id))
+        .returning();
+
+      return res.json({ id: updated.id, role: updated.role });
+    } catch (err) {
+      console.error('[update user role error]', err);
+      return res.status(500).json({ error: 'Error interno al actualizar rol' });
     }
-    const [targetUser] = await db.select().from(users).where(eq(users.id, Number(req.params.userId)));
-    if (!targetUser) return res.status(404).json({ error: 'Usuario no encontrado' });
-    if (targetUser.email === MASTER_EMAIL) {
-      return res.status(403).json({ error: 'No se puede cambiar el rol del usuario master' });
-    }
-    
-    const [updated] = await db.update(users).set({ role }).where(eq(users.id, targetUser.id)).returning();
-    res.json({ id: updated.id, role: updated.role });
   });
 
   app.post(api.admin.grantTrial.path, isAuthenticated, requireMaster, async (req, res) => {
