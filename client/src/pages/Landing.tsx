@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import {
   Clock, Calendar, MessageCircle, Users, LogIn, UserPlus, Loader2, Eye, EyeOff,
   Sun, Moon, UtensilsCrossed, Grid3X3, Smartphone, MapPin, FileText, CheckSquare,
-  BarChart3, ChevronRight, Zap, Shield, Star, ArrowRight
+  BarChart3, ChevronRight, Zap, Shield, Star, ArrowRight, FolderKanban
 } from "lucide-react";
 import logoImg from "@assets/logo_migestion_png_1773789215959.png";
 import { Footer } from "@/components/Footer";
@@ -81,6 +81,14 @@ const FEATURES = [
     desc: "Gestiona listas de tareas pendientes para tu equipo. Marca progreso y mantén control de pendientes.",
   },
   {
+    icon: FolderKanban,
+    color: "from-purple-500 to-indigo-400",
+    bg: "bg-purple-50 dark:bg-purple-950/30",
+    text: "text-purple-600 dark:text-purple-400",
+    title: "Proyectos Scrum",
+    desc: "Organiza proyectos con tableros Kanban, backlog y sprints. Asigna responsables y da seguimiento a tu equipo.",
+  },
+  {
     icon: BarChart3,
     color: "from-sky-500 to-blue-400",
     bg: "bg-sky-50 dark:bg-sky-950/30",
@@ -91,7 +99,7 @@ const FEATURES = [
 ];
 
 const STATS = [
-  { value: "9+", label: "Módulos integrados" },
+  { value: "10+", label: "Módulos integrados" },
   { value: "100%", label: "En la nube" },
   { value: "PWA", label: "Instala como app" },
   { value: "MXN", label: "Precios en pesos" },
@@ -350,7 +358,7 @@ export default function Landing() {
             </h1>
 
             <p className="text-lg md:text-xl text-blue-100/80 max-w-2xl mb-10 leading-relaxed">
-              Menú online, catálogo, citas, reloj checador, landing page instalable, minutas y más — todo integrado en una sola plataforma para empresas mexicanas.
+              Menú online, catálogo, citas, reloj checador, landing page instalable, minutas, proyectos Scrum y más — todo integrado en una sola plataforma para empresas mexicanas.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
