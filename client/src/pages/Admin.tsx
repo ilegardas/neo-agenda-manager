@@ -15,13 +15,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Trash2, CheckCircle, XCircle, Clock, Calendar, Settings, Pencil, MessageCircle, Save, LogOut, Users, Link2, Copy, ChevronDown, ArrowLeft, ExternalLink, CreditCard, Loader2, Crown, AlertCircle, UserCircle, Upload, Camera, Sun, Moon, UtensilsCrossed, Plus, ImagePlus, Package, Eye, EyeOff, FileSpreadsheet, Search, Download, BarChart3, X, UserCheck, Images, ZoomIn, ChevronLeft, ChevronRight, Globe, Palette, Layout, RotateCcw, MapPin, Printer, QrCode, NotebookPen, ClipboardList } from "lucide-react";
+import { Trash2, CheckCircle, XCircle, Clock, Calendar, Settings, Pencil, MessageCircle, Save, LogOut, Users, Link2, Copy, ChevronDown, ArrowLeft, ExternalLink, CreditCard, Loader2, Crown, AlertCircle, UserCircle, Upload, Camera, Sun, Moon, UtensilsCrossed, Plus, ImagePlus, Package, Eye, EyeOff, FileSpreadsheet, Search, Download, BarChart3, X, UserCheck, Images, ZoomIn, ChevronLeft, ChevronRight, Globe, Palette, Layout, RotateCcw, MapPin, Printer, QrCode, NotebookPen, ClipboardList, FolderKanban } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { AttendanceTab } from "@/components/AttendanceTab";
 import { MinutasTab } from "@/components/MinutasTab";
 import { ChecklistTab } from "@/components/ChecklistTab";
-import { SiWhatsapp, SiFacebook, SiInstagram, SiTiktok, SiYoutube } from "react-icons/si";
-import { FaLinkedin } from "react-icons/fa";
+import { ScrumTab } from "@/components/ScrumTab";
+import { SiWhatsapp, SiFacebook, SiInstagram, SiTiktok, SiYoutube, SiLinkedin } from "react-icons/si";
 import { useTheme } from "@/hooks/use-theme";
 import { Footer } from "@/components/Footer";
 import { cn } from "@/lib/utils";
@@ -974,6 +974,10 @@ export default function Admin({ viewingUserId }: AdminProps) {
               <ClipboardList className="w-3.5 h-3.5 shrink-0" />
               <span>Checklist</span>
             </TabsTrigger>
+            <TabsTrigger value="scrum" className="rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary font-medium px-2.5 py-1.5 flex items-center gap-1.5 text-xs sm:text-sm" data-testid="tab-scrum">
+              <FolderKanban className="w-3.5 h-3.5 shrink-0" />
+              <span>Scrum</span>
+            </TabsTrigger>
             {!isViewingOther && (
               <TabsTrigger value="landing" className="rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary font-medium px-2.5 py-1.5 flex items-center gap-1.5 text-xs sm:text-sm" data-testid="tab-landing">
                 <Globe className="w-3.5 h-3.5 shrink-0" />
@@ -1746,6 +1750,10 @@ export default function Admin({ viewingUserId }: AdminProps) {
             <ChecklistTab userId={targetUserId} />
           </TabsContent>
 
+          <TabsContent value="scrum" className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <ScrumTab />
+          </TabsContent>
+
           {/* ── Landing Page ── */}
           {!isViewingOther && (
             <TabsContent value="landing" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -2249,7 +2257,7 @@ export default function Admin({ viewingUserId }: AdminProps) {
                             />
                           </div>
                           <div className="flex items-center gap-2">
-                            <FaLinkedin className="w-5 h-5 text-[#0A66C2] shrink-0" />
+                            <SiLinkedin className="w-5 h-5 text-[#0A66C2] shrink-0" />
                             <Input
                               placeholder="https://linkedin.com/in/tu-perfil"
                               value={socialLinkedin}
