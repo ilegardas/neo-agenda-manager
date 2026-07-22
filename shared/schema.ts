@@ -1,4 +1,3 @@
-
 import { pgTable, text, serial, integer, boolean, timestamp, varchar, doublePrecision, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -224,7 +223,69 @@ export const insertMinutaSchema = createInsertSchema(minutas).omit({ id: true, c
 export type Minuta = typeof minutas.$inferSelect;
 export type InsertMinuta = z.infer<typeof insertMinutaSchema>;
 
+// ── Scrum module ──────────────────────────────────────────────────────────────
+
+export const scrumProjects = pgTable("scrum_projects", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const scrumSprints = pgTable("scrum_sprints", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  name: text("name").notNull(),
+  goal: text("goal"),
+  startDate: text("start_date"),
+  endDate: text("end_date"),
+  status: varchar("status", { length: 20 }).notNull().default("planning"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const scrumStories = pgTable("scrum_stories", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  sprintId: integer("sprint_id"),
+  title: text("title").notNull(),
+  description: text("description"),
+  acceptanceCriteria: text("acceptance_criteria"),
+  priority: varchar("priority", { length: 20 }).notNull().default("medium"),
+  storyPoints: integer("story_points"),
+  status: varchar("status", { length: 20 }).notNull().default("backlog"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const scrumTasks = pgTable("scrum_tasks", {
+  id: serial("id").primaryKey(),
+  storyId: integer("story_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  title: text("title").notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("todo"),
+  assignee: text("assignee"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertScrumProjectSchema = createInsertSchema(scrumProjects).omit({ id: true, createdAt: true });
+export const insertScrumSprintSchema = createInsertSchema(scrumSprints).omit({ id: true, createdAt: true });
+export const insertScrumStorySchema = createInsertSchema(scrumStories).omit({ id: true, createdAt: true });
+export const insertScrumTaskSchema = createInsertSchema(scrumTasks).omit({ id: true, createdAt: true });
+
+export type ScrumProject = typeof scrumProjects.$inferSelect;
+export type InsertScrumProject = z.infer<typeof insertScrumProjectSchema>;
+export type ScrumSprint = typeof scrumSprints.$inferSelect;
+export type InsertScrumSprint = z.infer<typeof insertScrumSprintSchema>;
+export type ScrumStory = typeof scrumStories.$inferSelect;
+export type InsertScrumStory = z.infer<typeof insertScrumStorySchema>;
+export type ScrumTask = typeof scrumTasks.$inferSelect;
+export type InsertScrumTask = z.infer<typeof insertScrumTaskSchema>;
+
 // ── Password reset tokens ─────────────────────────────────────────────────────
+
 export const passwordResetTokens = pgTable("password_reset_tokens", {
   id: serial("id").primaryKey(),
   email: varchar("email").notNull(),
