@@ -1119,7 +1119,7 @@ export default function Admin({ viewingUserId }: AdminProps) {
                         <div className="flex items-center gap-2">
                           {apt.customerPhone && (
                             <a
-                              href={`https://wa.me/52${apt.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${apt.customerName}, te contactamos sobre tu cita del ${format(new Date(apt.startTime), "d 'de' MMMM", { locale: es })} a las ${format(new Date(apt.startTime), "h:mm a")}.`)}`}
+                              href={`https://wa.me/+52${apt.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${apt.customerName}, te contactamos sobre tu cita del ${format(new Date(apt.startTime), "d 'de' MMMM", { locale: es })} a las ${format(new Date(apt.startTime), "h:mm a")}.`)}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               data-testid={`link-whatsapp-${apt.id}`}
