@@ -25,9 +25,9 @@ import {
   SiFacebook, 
   SiInstagram, 
   SiTiktok, 
-  SiYoutube, 
-  SiLinkedin 
+  SiYoutube 
 } from "react-icons/si";
+import { FaLinkedin } from "react-icons/fa";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("appointments");
