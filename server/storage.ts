@@ -1,4 +1,3 @@
-
 import { db } from "./db";
 import {
   availabilityRules,
@@ -40,6 +39,18 @@ import {
   type InsertChecklist,
   type ChecklistItem,
   type InsertChecklistItem,
+  scrumProjects,
+  scrumSprints,
+  scrumStories,
+  scrumTasks,
+  type ScrumProject,
+  type InsertScrumProject,
+  type ScrumSprint,
+  type InsertScrumSprint,
+  type ScrumStory,
+  type InsertScrumStory,
+  type ScrumTask,
+  type InsertScrumTask,
 } from "@shared/schema";
 import { eq, and, asc, desc, getTableColumns, gte, lte } from "drizzle-orm";
 
@@ -110,6 +121,24 @@ export interface IStorage {
   getCatalogPhotoById(id: number, userId: string): Promise<CatalogPhoto | undefined>;
   addCatalogPhoto(photo: InsertCatalogPhoto): Promise<CatalogPhoto>;
   deleteCatalogPhoto(id: number, userId: string): Promise<void>;
+
+  // Scrum
+  getScrumProjects(userId: string): Promise<ScrumProject[]>;
+  createScrumProject(p: InsertScrumProject): Promise<ScrumProject>;
+  updateScrumProject(id: number, userId: string, data: Partial<InsertScrumProject>): Promise<ScrumProject>;
+  deleteScrumProject(id: number, userId: string): Promise<void>;
+  getScrumSprints(projectId: number, userId: string): Promise<ScrumSprint[]>;
+  createScrumSprint(s: InsertScrumSprint): Promise<ScrumSprint>;
+  updateScrumSprint(id: number, userId: string, data: Partial<InsertScrumSprint>): Promise<ScrumSprint>;
+  deleteScrumSprint(id: number, userId: string): Promise<void>;
+  getScrumStories(projectId: number, userId: string): Promise<ScrumStory[]>;
+  createScrumStory(s: InsertScrumStory): Promise<ScrumStory>;
+  updateScrumStory(id: number, userId: string, data: Partial<InsertScrumStory>): Promise<ScrumStory>;
+  deleteScrumStory(id: number, userId: string): Promise<void>;
+  getScrumTasks(storyId: number, userId: string): Promise<ScrumTask[]>;
+  createScrumTask(t: InsertScrumTask): Promise<ScrumTask>;
+  updateScrumTask(id: number, userId: string, data: Partial<InsertScrumTask>): Promise<ScrumTask>;
+  deleteScrumTask(id: number, userId: string): Promise<void>;
 
   deleteUserCascade(userId: string): Promise<void>;
 }
@@ -440,9 +469,95 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // ── Scrum ───────────────────────────────────────────────────────────
+
+  async getScrumProjects(userId: string): Promise<ScrumProject[]> {
+    return db.select().from(scrumProjects).where(eq(scrumProjects.userId, userId)).orderBy(asc(scrumProjects.id));
+  }
+
+  async createScrumProject(p: InsertScrumProject): Promise<ScrumProject> {
+    const [r] = await db.insert(scrumProjects).values(p).returning();
+    return r;
+  }
+
+  async updateScrumProject(id: number, userId: string, data: Partial<InsertScrumProject>): Promise<ScrumProject> {
+    const [r] = await db.update(scrumProjects).set(data).where(and(eq(scrumProjects.id, id), eq(scrumProjects.userId, userId))).returning();
+    return r;
+  }
+
+  async deleteScrumProject(id: number, userId: string): Promise<void> {
+    const stories = await db.select().from(scrumStories).where(and(eq(scrumStories.projectId, id), eq(scrumStories.userId, userId)));
+    for (const s of stories) await db.delete(scrumTasks).where(eq(scrumTasks.storyId, s.id));
+    await db.delete(scrumStories).where(and(eq(scrumStories.projectId, id), eq(scrumStories.userId, userId)));
+    await db.delete(scrumSprints).where(and(eq(scrumSprints.projectId, id), eq(scrumSprints.userId, userId)));
+    await db.delete(scrumProjects).where(and(eq(scrumProjects.id, id), eq(scrumProjects.userId, userId)));
+  }
+
+  async getScrumSprints(projectId: number, userId: string): Promise<ScrumSprint[]> {
+    return db.select().from(scrumSprints).where(and(eq(scrumSprints.projectId, projectId), eq(scrumSprints.userId, userId))).orderBy(asc(scrumSprints.id));
+  }
+
+  async createScrumSprint(s: InsertScrumSprint): Promise<ScrumSprint> {
+    const [r] = await db.insert(scrumSprints).values(s).returning();
+    return r;
+  }
+
+  async updateScrumSprint(id: number, userId: string, data: Partial<InsertScrumSprint>): Promise<ScrumSprint> {
+    const [r] = await db.update(scrumSprints).set(data).where(and(eq(scrumSprints.id, id), eq(scrumSprints.userId, userId))).returning();
+    return r;
+  }
+
+  async deleteScrumSprint(id: number, userId: string): Promise<void> {
+    await db.update(scrumStories).set({ sprintId: null, status: 'backlog' }).where(and(eq(scrumStories.sprintId, id), eq(scrumStories.userId, userId)));
+    await db.delete(scrumSprints).where(and(eq(scrumSprints.id, id), eq(scrumSprints.userId, userId)));
+  }
+
+  async getScrumStories(projectId: number, userId: string): Promise<ScrumStory[]> {
+    return db.select().from(scrumStories).where(and(eq(scrumStories.projectId, projectId), eq(scrumStories.userId, userId))).orderBy(asc(scrumStories.sortOrder), asc(scrumStories.id));
+  }
+
+  async createScrumStory(s: InsertScrumStory): Promise<ScrumStory> {
+    const [r] = await db.insert(scrumStories).values(s).returning();
+    return r;
+  }
+
+  async updateScrumStory(id: number, userId: string, data: Partial<InsertScrumStory>): Promise<ScrumStory> {
+    const [r] = await db.update(scrumStories).set(data).where(and(eq(scrumStories.id, id), eq(scrumStories.userId, userId))).returning();
+    return r;
+  }
+
+  async deleteScrumStory(id: number, userId: string): Promise<void> {
+    await db.delete(scrumTasks).where(eq(scrumTasks.storyId, id));
+    await db.delete(scrumStories).where(and(eq(scrumStories.id, id), eq(scrumStories.userId, userId)));
+  }
+
+  async getScrumTasks(storyId: number, userId: string): Promise<ScrumTask[]> {
+    return db.select().from(scrumTasks).where(and(eq(scrumTasks.storyId, storyId), eq(scrumTasks.userId, userId))).orderBy(asc(scrumTasks.id));
+  }
+
+  async createScrumTask(t: InsertScrumTask): Promise<ScrumTask> {
+    const [r] = await db.insert(scrumTasks).values(t).returning();
+    return r;
+  }
+
+  async updateScrumTask(id: number, userId: string, data: Partial<InsertScrumTask>): Promise<ScrumTask> {
+    const [r] = await db.update(scrumTasks).set(data).where(and(eq(scrumTasks.id, id), eq(scrumTasks.userId, userId))).returning();
+    return r;
+  }
+
+  async deleteScrumTask(id: number, userId: string): Promise<void> {
+    await db.delete(scrumTasks).where(and(eq(scrumTasks.id, id), eq(scrumTasks.userId, userId)));
+  }
+
   // ── Cascade delete ─────────────────────────────────────────────────
 
   async deleteUserCascade(userId: string): Promise<void> {
+    // Scrum cascade
+    const userProjects = await db.select().from(scrumProjects).where(eq(scrumProjects.userId, userId));
+    for (const p of userProjects) {
+      await this.deleteScrumProject(p.id, userId);
+    }
+
     await db.delete(attendances).where(eq(attendances.userId, userId));
     await db.delete(employees).where(eq(employees.userId, userId));
     await db.delete(schedules).where(eq(schedules.userId, userId));
