@@ -91,6 +91,7 @@ export const sucursales = pgTable("sucursales", {
   userId: varchar("user_id").notNull(),
   name: text("name").notNull(),
   phone: text("phone"),
+  address: text("address"),
   manager: text("manager"),
   latitude: doublePrecision("latitude"),
   longitude: doublePrecision("longitude"),
