@@ -14,6 +14,10 @@ import {
   insertMinutaSchema, 
   insertChecklistSchema, 
   insertChecklistItemSchema,
+  insertScrumProjectSchema,
+  insertScrumSprintSchema,
+  insertScrumStorySchema,
+  insertScrumTaskSchema,
   users 
 } from "@shared/schema";
 
@@ -190,7 +194,6 @@ export async function registerRoutes(
 
   // 4. Cerrar Sesión
   app.post("/api/auth/logout", (req, res) => {
-    // Limpiar variables locales de la sesión
     if (req.session) {
       (req.session as any).localUserId = null;
     }
@@ -201,7 +204,6 @@ export async function registerRoutes(
         return res.status(500).json({ message: "Error al cerrar sesión" });
       }
   
-      // Limpiar cookie explícitamente en la raíz y con el nombre por defecto
       res.clearCookie("connect.sid", { path: "/" });
       res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
       return res.status(200).json({ message: "Sesión cerrada correctamente" });
@@ -1203,6 +1205,76 @@ export async function registerRoutes(
     } catch (err) {
       res.status(500).send();
     }
+  });
+
+  // === SCRUM ROUTES ===
+
+  // Projects
+  app.get(api.scrum.listProjects.path, isAuthenticated, async (req, res) => {
+    try { res.json(await storage.getScrumProjects(getUserId(req))); } catch (e) { res.status(500).json({ message: "Error" }); }
+  });
+  app.post(api.scrum.createProject.path, isAuthenticated, async (req, res) => {
+    try {
+      const data = insertScrumProjectSchema.parse({ ...req.body, userId: getUserId(req) });
+      res.status(201).json(await storage.createScrumProject(data));
+    } catch (e) { res.status(400).json({ message: (e as any).message }); }
+  });
+  app.patch(api.scrum.updateProject.path, isAuthenticated, async (req, res) => {
+    try { res.json(await storage.updateScrumProject(Number(req.params.projectId), getUserId(req), req.body)); } catch (e) { res.status(500).json({ message: "Error" }); }
+  });
+  app.delete(api.scrum.deleteProject.path, isAuthenticated, async (req, res) => {
+    try { await storage.deleteScrumProject(Number(req.params.projectId), getUserId(req)); res.status(204).send(); } catch (e) { res.status(500).json({ message: "Error" }); }
+  });
+
+  // Sprints
+  app.get(api.scrum.listSprints.path, isAuthenticated, async (req, res) => {
+    try { res.json(await storage.getScrumSprints(Number(req.params.projectId), getUserId(req))); } catch (e) { res.status(500).json({ message: "Error" }); }
+  });
+  app.post(api.scrum.createSprint.path, isAuthenticated, async (req, res) => {
+    try {
+      const data = insertScrumSprintSchema.parse({ ...req.body, projectId: Number(req.params.projectId), userId: getUserId(req) });
+      res.status(201).json(await storage.createScrumSprint(data));
+    } catch (e) { res.status(400).json({ message: (e as any).message }); }
+  });
+  app.patch(api.scrum.updateSprint.path, isAuthenticated, async (req, res) => {
+    try { res.json(await storage.updateScrumSprint(Number(req.params.sprintId), getUserId(req), req.body)); } catch (e) { res.status(500).json({ message: "Error" }); }
+  });
+  app.delete(api.scrum.deleteSprint.path, isAuthenticated, async (req, res) => {
+    try { await storage.deleteScrumSprint(Number(req.params.sprintId), getUserId(req)); res.status(204).send(); } catch (e) { res.status(500).json({ message: "Error" }); }
+  });
+
+  // Stories
+  app.get(api.scrum.listStories.path, isAuthenticated, async (req, res) => {
+    try { res.json(await storage.getScrumStories(Number(req.params.projectId), getUserId(req))); } catch (e) { res.status(500).json({ message: "Error" }); }
+  });
+  app.post(api.scrum.createStory.path, isAuthenticated, async (req, res) => {
+    try {
+      const data = insertScrumStorySchema.parse({ ...req.body, projectId: Number(req.params.projectId), userId: getUserId(req) });
+      res.status(201).json(await storage.createScrumStory(data));
+    } catch (e) { res.status(400).json({ message: (e as any).message }); }
+  });
+  app.patch(api.scrum.updateStory.path, isAuthenticated, async (req, res) => {
+    try { res.json(await storage.updateScrumStory(Number(req.params.storyId), getUserId(req), req.body)); } catch (e) { res.status(500).json({ message: "Error" }); }
+  });
+  app.delete(api.scrum.deleteStory.path, isAuthenticated, async (req, res) => {
+    try { await storage.deleteScrumStory(Number(req.params.storyId), getUserId(req)); res.status(204).send(); } catch (e) { res.status(500).json({ message: "Error" }); }
+  });
+
+  // Tasks
+  app.get(api.scrum.listTasks.path, isAuthenticated, async (req, res) => {
+    try { res.json(await storage.getScrumTasks(Number(req.params.storyId), getUserId(req))); } catch (e) { res.status(500).json({ message: "Error" }); }
+  });
+  app.post(api.scrum.createTask.path, isAuthenticated, async (req, res) => {
+    try {
+      const data = insertScrumTaskSchema.parse({ ...req.body, storyId: Number(req.params.storyId), userId: getUserId(req) });
+      res.status(201).json(await storage.createScrumTask(data));
+    } catch (e) { res.status(400).json({ message: (e as any).message }); }
+  });
+  app.patch(api.scrum.updateTask.path, isAuthenticated, async (req, res) => {
+    try { res.json(await storage.updateScrumTask(Number(req.params.taskId), getUserId(req), req.body)); } catch (e) { res.status(500).json({ message: "Error" }); }
+  });
+  app.delete(api.scrum.deleteTask.path, isAuthenticated, async (req, res) => {
+    try { await storage.deleteScrumTask(Number(req.params.taskId), getUserId(req)); res.status(204).send(); } catch (e) { res.status(500).json({ message: "Error" }); }
   });
 
   return httpServer;
