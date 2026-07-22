@@ -1,4 +1,3 @@
-
 import { z } from 'zod';
 import { insertAppointmentSchema, insertAvailabilityRuleSchema, appointments, availabilityRules } from './schema';
 
@@ -161,6 +160,24 @@ export const api = {
     createItem:  { method: 'POST' as const,   path: '/api/checklists/:id/items' },
     deleteItem:  { method: 'DELETE' as const, path: '/api/checklists/:id/items/:itemId' },
     reorderItems:{ method: 'PUT' as const,    path: '/api/checklists/:id/items/order' },
+  },
+  scrum: {
+    listProjects:  { method: 'GET' as const,    path: '/api/scrum/projects' },
+    createProject: { method: 'POST' as const,   path: '/api/scrum/projects' },
+    updateProject: { method: 'PATCH' as const,  path: '/api/scrum/projects/:projectId' },
+    deleteProject: { method: 'DELETE' as const, path: '/api/scrum/projects/:projectId' },
+    listSprints:   { method: 'GET' as const,    path: '/api/scrum/projects/:projectId/sprints' },
+    createSprint:  { method: 'POST' as const,   path: '/api/scrum/projects/:projectId/sprints' },
+    updateSprint:  { method: 'PATCH' as const,  path: '/api/scrum/sprints/:sprintId' },
+    deleteSprint:  { method: 'DELETE' as const, path: '/api/scrum/sprints/:sprintId' },
+    listStories:   { method: 'GET' as const,    path: '/api/scrum/projects/:projectId/stories' },
+    createStory:   { method: 'POST' as const,   path: '/api/scrum/projects/:projectId/stories' },
+    updateStory:   { method: 'PATCH' as const,  path: '/api/scrum/stories/:storyId' },
+    deleteStory:   { method: 'DELETE' as const, path: '/api/scrum/stories/:storyId' },
+    listTasks:     { method: 'GET' as const,    path: '/api/scrum/stories/:storyId/tasks' },
+    createTask:    { method: 'POST' as const,   path: '/api/scrum/stories/:storyId/tasks' },
+    updateTask:    { method: 'PATCH' as const,  path: '/api/scrum/tasks/:taskId' },
+    deleteTask:    { method: 'DELETE' as const, path: '/api/scrum/tasks/:taskId' },
   },
   admin: {
     users: { method: 'GET' as const, path: '/api/admin/users' },
