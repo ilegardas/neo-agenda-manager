@@ -662,22 +662,30 @@ export async function registerRoutes(
   app.patch(api.admin.updateUserRole.path, isAuthenticated, requireMaster, async (req, res) => {
     try {
       const { role } = req.body as { role: 'admin' | 'user' };
+      const userId = req.params.userId;
+
       if (!role || !['admin', 'user'].includes(role)) {
         return res.status(400).json({ error: 'Rol inválido' });
       }
 
-      const targetId = Number(req.params.userId);
-      if (isNaN(targetId)) {
-        return res.status(400).json({ error: 'ID de usuario inválido' });
+      if (!userId) {
+        return res.status(400).json({ error: 'ID de usuario requerido' });
       }
 
-      const [targetUser] = await db.select().from(users).where(eq(users.id, targetId));
-      if (!targetUser) return res.status(404).json({ error: 'Usuario no encontrado' });
-      
+      // Se consulta por eq(users.id, userId) comparando el string/UUID o int según la columna
+      const [targetUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId as any));
+
+      if (!targetUser) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+
       if (targetUser.email === MASTER_EMAIL) {
         return res.status(403).json({ error: 'No se puede cambiar el rol del usuario master' });
       }
-      
+
       const [updated] = await db
         .update(users)
         .set({ role })
@@ -690,6 +698,9 @@ export async function registerRoutes(
       return res.status(500).json({ error: 'Error interno al actualizar rol' });
     }
   });
+
+
+  
 
   app.post(api.admin.grantTrial.path, isAuthenticated, requireMaster, async (req, res) => {
     const [targetUser] = await db.select().from(users).where(eq(users.id, Number(req.params.userId)));
