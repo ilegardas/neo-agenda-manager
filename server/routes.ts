@@ -61,7 +61,7 @@ async function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const userId = getUserId(req);
   if (!userId) return res.status(401).json({ message: "No autorizado" });
   
-  const [user] = await db.select().from(users).where(eq(users.id, Number(userId)));
+  const [user] = await db.select().from(users).where(eq(users.id, userId as any));
   if (!user || user.role !== 'admin') {
     return res.status(403).json({ message: "Forbidden" });
   }
@@ -73,7 +73,7 @@ async function requireMaster(req: Request, res: Response, next: NextFunction) {
   const userId = getUserId(req);
   if (!userId) return res.status(401).json({ message: "No autorizado" });
 
-  const [user] = await db.select().from(users).where(eq(users.id, Number(userId)));
+  const [user] = await db.select().from(users).where(eq(users.id, userId as any));
   if (!user || user.email !== MASTER_EMAIL) {
     return res.status(403).json({ message: "Forbidden" });
   }
@@ -98,7 +98,8 @@ export async function registerRoutes(
       return res.status(401).json(null);
     }
     
-    const [user] = await db.select().from(users).where(eq(users.id, Number(userId)));
+    // Corregido: Maneja userId directamente como UUID string
+    const [user] = await db.select().from(users).where(eq(users.id, userId as any));
     if (!user) {
       return res.status(401).json(null);
     }
@@ -184,8 +185,14 @@ export async function registerRoutes(
 
       (req.session as any).localUserId = newUser.id;
 
-      const { password: _, ...safeUser } = newUser;
-      return res.status(201).json(safeUser);
+      req.session.save((err) => {
+        if (err) {
+          console.error("[session save error on register]", err);
+          return res.status(500).json({ message: "Error al guardar la sesión" });
+        }
+        const { password: _, ...safeUser } = newUser;
+        return res.status(201).json(safeUser);
+      });
     } catch (err) {
       console.error("[register error]", err);
       return res.status(500).json({ message: "Error al registrar el usuario" });
@@ -204,6 +211,7 @@ export async function registerRoutes(
         return res.status(500).json({ message: "Error al cerrar sesión" });
       }
   
+      res.clearCookie("sid", { path: "/" });
       res.clearCookie("connect.sid", { path: "/" });
       res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
       return res.status(200).json({ message: "Sesión cerrada correctamente" });
@@ -317,7 +325,7 @@ export async function registerRoutes(
       return res.json({ status: 'active', plan: 'admin', isAdmin: true });
     }
     const userId = getUserId(req);
-    const [user] = await db.select().from(users).where(eq(users.id, Number(userId)));
+    const [user] = await db.select().from(users).where(eq(users.id, userId as any));
     if (user?.email === MASTER_EMAIL || user?.role === 'admin') {
       return res.json({ status: 'active', plan: 'admin', isAdmin: true });
     }
@@ -342,7 +350,7 @@ export async function registerRoutes(
     const { plan } = req.body as { plan: PlanKey };
     if (!PLANS[plan]) return res.status(400).json({ message: "Plan inválido" });
 
-    const [user] = await db.select().from(users).where(eq(users.id, Number(userId)));
+    const [user] = await db.select().from(users).where(eq(users.id, userId as any));
     const prices = getPriceIds();
 
     let sub = await storage.getSubscription(userId);
@@ -489,7 +497,7 @@ export async function registerRoutes(
   // === PUBLIC ROUTES ===
 
   app.get(api.public.userInfo.path, async (req, res) => {
-    const [user] = await db.select().from(users).where(eq(users.id, Number(req.params.userId)));
+    const [user] = await db.select().from(users).where(eq(users.id, req.params.userId as any));
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json({
       id: user.id,
@@ -500,7 +508,7 @@ export async function registerRoutes(
 
   app.get(api.public.userSubscriptionStatus.path, async (req, res) => {
     const userId = req.params.userId;
-    const [user] = await db.select().from(users).where(eq(users.id, Number(userId)));
+    const [user] = await db.select().from(users).where(eq(users.id, userId as any));
     if (!user) return res.status(404).json({ active: false });
     if (user.email === MASTER_EMAIL || user.role === 'admin') return res.json({ active: true });
     const sub = await storage.getSubscription(userId);
@@ -654,8 +662,6 @@ export async function registerRoutes(
     }
   });
 
-  
-
   app.delete(api.admin.deleteUserAppointment.path, isAuthenticated, requireAdmin, async (req, res) => {
     await storage.deleteAppointment(Number(req.params.id), req.params.userId);
     res.status(204).send();
@@ -664,7 +670,7 @@ export async function registerRoutes(
   app.patch(api.admin.updateUserRole.path, isAuthenticated, requireMaster, async (req, res) => {
     try {
       const { role } = req.body as { role: 'admin' | 'user' };
-      const userId = req.params.userId; // Recibimos el UUID directamente como string
+      const userId = req.params.userId;
 
       if (!role || !['admin', 'user'].includes(role)) {
         return res.status(400).json({ error: 'Rol inválido' });
@@ -674,7 +680,6 @@ export async function registerRoutes(
         return res.status(400).json({ error: 'ID de usuario requerido' });
       }
 
-      // Buscamos el usuario por su ID (UUID/String)
       const [targetUser] = await db
         .select()
         .from(users)
@@ -701,11 +706,8 @@ export async function registerRoutes(
     }
   });
 
-
-  
-
   app.post(api.admin.grantTrial.path, isAuthenticated, requireMaster, async (req, res) => {
-    const [targetUser] = await db.select().from(users).where(eq(users.id, Number(req.params.userId)));
+    const [targetUser] = await db.select().from(users).where(eq(users.id, req.params.userId as any));
     if (!targetUser) return res.status(404).json({ error: 'Usuario no encontrado' });
     if (targetUser.email === MASTER_EMAIL) return res.status(400).json({ error: 'El usuario master no necesita período de prueba' });
     const sub = await storage.grantTrial(req.params.userId, 7);
@@ -714,7 +716,7 @@ export async function registerRoutes(
 
   app.delete(api.admin.deleteUser.path, isAuthenticated, requireMaster, async (req, res) => {
     try {
-      const [targetUser] = await db.select().from(users).where(eq(users.id, Number(req.params.userId)));
+      const [targetUser] = await db.select().from(users).where(eq(users.id, req.params.userId as any));
       if (!targetUser) return res.status(404).json({ error: 'Usuario no encontrado' });
       if (targetUser.email === MASTER_EMAIL) {
         return res.status(403).json({ error: 'No se puede eliminar el usuario master' });
@@ -1203,7 +1205,7 @@ export async function registerRoutes(
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     try {
       const { userId } = req.params;
-      const [user] = await db.select().from(users).where(eq(users.id, Number(userId)));
+      const [user] = await db.select().from(users).where(eq(users.id, userId as any));
       if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
       const isMaster = user.email === MASTER_EMAIL || user.role === 'admin';
       if (!isMaster) {
