@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle2, Clock, Loader2, Barcode, Hash, XCircle, LogIn, UtensilsCrossed, LogOut, Lock, Eye, CreditCard, MapPin, MapPinOff, AlertTriangle } from "lucide-react";
+import { CheckCircle2, Clock, Loader2, Barcode, Hash, XCircle, LogIn, UtensilsCrossed, LogOut, Lock, Eye, CreditCard, MapPin, MapPinOff, AlertTriangle, RefreshCw } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
@@ -24,7 +24,7 @@ interface Props {
 type LastRecord = { name: string; date: string; time: string; type?: string; success: boolean; message?: string; isRetardo?: boolean };
 
 const TYPE_OPTIONS: { value: CheckType; label: string; icon: React.ReactNode; color: string }[] = [
-  { value: "entrada",  label: "Entrada",         icon: <LogIn className="w-4 h-4" />,           color: "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300" },
+  { value: "entrada",  label: "Entrada",          icon: <LogIn className="w-4 h-4" />,           color: "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300" },
   { value: "comida",   label: "Salida a comer",  icon: <UtensilsCrossed className="w-4 h-4" />, color: "bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900/30 dark:text-orange-300" },
   { value: "regreso",  label: "Entrada de comida",icon: <LogIn className="w-4 h-4" />,           color: "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300" },
   { value: "salida",   label: "Salida",          icon: <LogOut className="w-4 h-4" />,          color: "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300" },
@@ -36,6 +36,7 @@ export default function CheckinPage({ userId }: Props) {
   const [now, setNow] = useState(new Date());
   const geoRef = useRef<{ lat: number; lng: number } | null>(null);
   const [geoOk, setGeoOk] = useState<boolean | null>(null);
+  const [geoLoading, setGeoLoading] = useState<boolean>(false);
   const lastPayloadRef = useRef<any>(null);
   const [retardoPending, setRetardoPending] = useState<{ scheduleStart?: string; toleranciaMin?: number } | null>(null);
   const [retardoComentario, setRetardoComentario] = useState("");
@@ -52,17 +53,42 @@ export default function CheckinPage({ userId }: Props) {
     return () => clearInterval(id);
   }, []);
 
-  useEffect(() => {
-    if (!navigator.geolocation) { setGeoOk(false); return; }
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        geoRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setGeoOk(true);
-      },
-      () => setGeoOk(false),
-      { enableHighAccuracy: true, maximumAge: 30000, timeout: 15000 }
+  // Función para solicitar ubicación con fallback
+  const requestLocation = () => {
+    if (!navigator.geolocation) {
+      setGeoOk(false);
+      return;
+    }
+
+    setGeoLoading(true);
+
+    const handleSuccess = (pos: GeolocationPosition) => {
+      geoRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      setGeoOk(true);
+      setGeoLoading(false);
+    };
+
+    const handleError = () => {
+      // Reintentamos con enableHighAccuracy: false en caso de estar en desktop sin GPS dedicado
+      navigator.geolocation.getCurrentPosition(
+        handleSuccess,
+        () => {
+          setGeoOk(false);
+          setGeoLoading(false);
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+      );
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      handleSuccess,
+      handleError,
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
     );
-    return () => navigator.geolocation.clearWatch(watchId);
+  };
+
+  useEffect(() => {
+    requestLocation();
   }, []);
 
   const { data: providerSettings } = useQuery<Record<string, string>>({
@@ -89,12 +115,11 @@ export default function CheckinPage({ userId }: Props) {
   const checkin = useMutation({
     mutationFn: async (payload: { employeeId?: number; pin?: string; barcode?: string; type?: string; comentario?: string }) => {
       lastPayloadRef.current = payload;
-      // Send client's local date/time so the server records the correct local hour
       const localNow = new Date();
       const _p = (n: number) => String(n).padStart(2, '0');
       const localDate = `${localNow.getFullYear()}-${_p(localNow.getMonth()+1)}-${_p(localNow.getDate())}`;
       const localTime = `${_p(localNow.getHours())}:${_p(localNow.getMinutes())}:${_p(localNow.getSeconds())}`;
-      const localDayOfWeek = String(localNow.getDay()); // "0"=Sun … "6"=Sat
+      const localDayOfWeek = String(localNow.getDay());
       const res = await fetch(buildUrl(api.public.checkIn.path, { userId }), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -130,7 +155,6 @@ export default function CheckinPage({ userId }: Props) {
     },
   });
 
-  // 10-second countdown after retardo success → auto-reset
   useEffect(() => {
     if (retardoCountdown <= 0) return;
     const t = setTimeout(() => {
@@ -141,7 +165,6 @@ export default function CheckinPage({ userId }: Props) {
     return () => clearTimeout(t);
   }, [retardoCountdown]);
 
-  // Reset all transient state (go back to initial checador view)
   const resetAll = () => {
     setLastRecord(null);
     setRetardoPending(null);
@@ -150,7 +173,6 @@ export default function CheckinPage({ userId }: Props) {
     setResetKey(k => k + 1);
   };
 
-  // Idle timer: if no key pressed for 5 seconds, reset to initial state
   useEffect(() => {
     const restartIdle = () => {
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
@@ -164,7 +186,6 @@ export default function CheckinPage({ userId }: Props) {
       document.removeEventListener("keydown", restartIdle);
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const isPageActive = subStatus?.active;
@@ -228,15 +249,38 @@ export default function CheckinPage({ userId }: Props) {
           <p className="text-2xl font-bold text-primary tabular-nums">
             {format(now, "HH:mm:ss")}
           </p>
-          {geoOk !== null && (
-            <div className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full mx-auto ${geoOk ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"}`}>
-              {geoOk ? <MapPin className="w-3 h-3" /> : <MapPinOff className="w-3 h-3" />}
-              {geoOk ? "GPS activo" : "GPS no disponible"}
+          
+          {/* Indicador de GPS con botón de reintento/permisos */}
+          <div className="flex items-center justify-center gap-2">
+            <div className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full ${
+              geoOk === true 
+                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
+                : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
+            }`}>
+              {geoLoading ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : geoOk === true ? (
+                <MapPin className="w-3 h-3" />
+              ) : (
+                <MapPinOff className="w-3 h-3" />
+              )}
+              <span>
+                {geoLoading ? "Obteniendo ubicación..." : geoOk === true ? "GPS activo" : "GPS no disponible"}
+              </span>
+              {geoOk !== true && !geoLoading && (
+                <button
+                  type="button"
+                  onClick={requestLocation}
+                  className="ml-1 underline font-semibold hover:text-orange-900 dark:hover:text-orange-200 flex items-center gap-0.5"
+                >
+                  <RefreshCw className="w-2.5 h-2.5" /> Activar
+                </button>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Retardo dialog — shown before result */}
+        {/* Retardo dialog */}
         {retardoPending && !lastRecord && (
           <Card className="border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700">
             <CardContent className="pt-6 pb-5 space-y-4">
@@ -349,7 +393,7 @@ export default function CheckinPage({ userId }: Props) {
           )
         )}
 
-        {/* Type selector – always visible */}
+        {/* Type selector */}
         {!lastRecord && (
           <div className="grid grid-cols-2 gap-2">
             {TYPE_OPTIONS.map(opt => (
@@ -410,7 +454,7 @@ export default function CheckinPage({ userId }: Props) {
   );
 }
 
-// ── PIN mode: select employee → numpad PIN ───────────────────────────────────
+// ── PIN mode ───────────────────────────────────────────────────
 
 const NUMPAD = [
   ["1", "2", "3"],
@@ -483,7 +527,6 @@ function PinCheckin({
 
   return (
     <div className="space-y-4">
-      {/* Selected employee header */}
       <div className="text-center">
         <p className="text-xs text-muted-foreground mb-0.5">Empleado seleccionado</p>
         <p className="font-semibold text-foreground text-base">{selectedEmp?.name}</p>
@@ -492,7 +535,6 @@ function PinCheckin({
 
       <p className="text-sm text-muted-foreground text-center">Ingresa tu PIN de 4 dígitos</p>
 
-      {/* PIN display */}
       <div className="flex justify-center gap-3">
         {[0, 1, 2, 3].map(i => (
           <div
@@ -509,7 +551,6 @@ function PinCheckin({
         ))}
       </div>
 
-      {/* Numpad */}
       <div className="grid grid-cols-3 gap-2 max-w-[240px] mx-auto">
         {NUMPAD.flat().map((key, idx) =>
           key === "" ? (
@@ -551,7 +592,7 @@ function PinCheckin({
   );
 }
 
-// ── Barcode/QR scanner mode ──────────────────────────────────────────────────
+// ── Barcode mode ────────────────────────────────────────────────────────────
 
 function BarcodeCheckin({
   checkin,
