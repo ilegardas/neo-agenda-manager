@@ -43,23 +43,22 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
-// Configuración persistente de sesiones
 app.use(
   session({
     store: new PgSession({
-      pool, // Utiliza el pool de PostgreSQL
+      pool,
       tableName: "session",
-      createTableIfMissing: true, // Crea la tabla 'session' en Postgres automáticamente
+      createTableIfMissing: true,
     }),
     name: "sid",
     secret: process.env.SESSION_SECRET || "clave_secreta_local_desarrollo",
     resave: false,
     saveUninitialized: false,
-    proxy: true,
+    proxy: true, // 👈 OBLIGATORIO: Le dice a express-session que confíe en el header X-Forwarded-Proto de Railway
     cookie: {
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production", // Debería ser true en Railway
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: "lax", // 👈 Evita que la cookie se bloquee tras redirecciones/reloads
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
     },
   })
