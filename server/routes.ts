@@ -654,6 +654,8 @@ export async function registerRoutes(
     }
   });
 
+  
+
   app.delete(api.admin.deleteUserAppointment.path, isAuthenticated, requireAdmin, async (req, res) => {
     await storage.deleteAppointment(Number(req.params.id), req.params.userId);
     res.status(204).send();
@@ -662,7 +664,7 @@ export async function registerRoutes(
   app.patch(api.admin.updateUserRole.path, isAuthenticated, requireMaster, async (req, res) => {
     try {
       const { role } = req.body as { role: 'admin' | 'user' };
-      const userId = req.params.userId;
+      const userId = req.params.userId; // Recibimos el UUID directamente como string
 
       if (!role || !['admin', 'user'].includes(role)) {
         return res.status(400).json({ error: 'Rol inválido' });
@@ -672,7 +674,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: 'ID de usuario requerido' });
       }
 
-      // Se consulta por eq(users.id, userId) comparando el string/UUID o int según la columna
+      // Buscamos el usuario por su ID (UUID/String)
       const [targetUser] = await db
         .select()
         .from(users)
