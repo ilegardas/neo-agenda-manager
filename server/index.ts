@@ -43,27 +43,28 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
-// Manejo de sesiones persistidas en PostgreSQL
+// Configuración persistente de sesiones
 app.use(
   session({
     store: new PgSession({
-      pool, // Utiliza el pool existente de pg/drizzle
+      pool, // Utiliza el pool de PostgreSQL
       tableName: "session",
-      createTableIfMissing: true, // Crea la tabla de sesiones automáticamente en caso de no existir
+      createTableIfMissing: true, // Crea la tabla 'session' en Postgres automáticamente
     }),
     name: "sid",
     secret: process.env.SESSION_SECRET || "clave_secreta_local_desarrollo",
     resave: false,
     saveUninitialized: false,
-    proxy: true, // Notifica a express-session que está detrás de un proxy HTTPS
+    proxy: true,
     cookie: {
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
       sameSite: "lax",
-      maxAge: 30 * 24 * 60 * 60 * 1000, // Extendemos la validez de la sesión a 30 días
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
     },
   })
 );
+
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
