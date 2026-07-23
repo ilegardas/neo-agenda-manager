@@ -1,10 +1,11 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { startScheduler } from "./scheduler";
-import { db } from "./db";
+import { db, pool } from "./db"; // Importamos pool desde db.ts
 import { users } from "@shared/schema";
 
 // Prevent ECONNRESET / pool errors from crashing the process in Node ≥ 15
@@ -19,9 +20,11 @@ process.on("unhandledRejection", (reason) => {
 const app = express();
 const httpServer = createServer(app);
 
+// Inicializar el store de Postgres para las sesiones
+const PgSession = connectPgSimple(session);
+
 // OBLIGATORIO EN RAILWAY: Permite que express-session reconozca HTTPS tras el proxy
 app.set("trust proxy", 1);
-
 
 declare module "http" {
   interface IncomingMessage {
@@ -40,9 +43,14 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
-// Manejo tradicional de sesiones HTTP en Express
+// Manejo de sesiones persistidas en PostgreSQL
 app.use(
   session({
+    store: new PgSession({
+      pool, // Utiliza el pool existente de pg/drizzle
+      tableName: "session",
+      createTableIfMissing: true, // Crea la tabla de sesiones automáticamente en caso de no existir
+    }),
     name: "sid",
     secret: process.env.SESSION_SECRET || "clave_secreta_local_desarrollo",
     resave: false,
@@ -52,11 +60,10 @@ app.use(
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
       sameSite: "lax",
-      maxAge: 24 * 60 * 60 * 1000, // 24 horas
+      maxAge: 30 * 24 * 60 * 60 * 1000, // Extendemos la validez de la sesión a 30 días
     },
   })
 );
-
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
