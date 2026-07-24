@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Trash2, CheckCircle, XCircle, Clock, Calendar, Settings, Pencil, MessageCircle, Save, LogOut, Users, Link2, Copy, ChevronDown, ArrowLeft, ExternalLink, CreditCard, Loader2, Crown, AlertCircle, UserCircle, Upload, Camera, Sun, Moon, UtensilsCrossed, Plus, ImagePlus, Package, Eye, EyeOff, FileSpreadsheet, Search, Download, BarChart3, X, UserCheck, Images, ZoomIn, ChevronLeft, ChevronRight, Globe, Palette, Layout, RotateCcw, MapPin, Printer, QrCode, NotebookPen, ClipboardList, FolderKanban } from "lucide-react";
+import { Trash2, CheckCircle, XCircle, Clock, Calendar, Settings, Pencil, MessageCircle, Save, LogOut, Users, Link2, Copy, ChevronDown, ArrowLeft, ExternalLink, CreditCard, Loader2, Crown, AlertCircle, UserCircle, Upload, Camera, Sun, Moon, UtensilsCrossed, Plus, ImagePlus, Package, Eye, EyeOff, FileSpreadsheet, Search, Download, BarChart3, X, UserCheck, Images, ZoomIn, ChevronLeft, ChevronRight, Globe, Palette, Layout, RotateCcw, MapPin, Printer, QrCode, NotebookPen, ClipboardList, FolderKanban, Zap } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { AttendanceTab } from "@/components/AttendanceTab";
 import { MinutasTab } from "@/components/MinutasTab";
@@ -26,7 +26,8 @@ import {
   SiFacebook, 
   SiInstagram, 
   SiTiktok, 
-  SiYoutube 
+  SiYoutube,
+  SiLinkedin
 } from "react-icons/si";
 import { FaLinkedin } from "react-icons/fa";
 import { useTheme } from "@/hooks/use-theme";
@@ -332,13 +333,24 @@ export default function Admin({ viewingUserId }: AdminProps) {
     return () => clearTimeout(timer);
   }, [pollingSubscription, subscriptionStatus, pollingAttempts]);
 
+  function extractErrorMessage(err: Error): string {
+    const raw = err.message.replace(/^\d+:\s*/, "");
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed?.message) return parsed.message;
+    } catch {
+      // no era JSON
+    }
+    return raw;
+  }
+
   function handleCheckout(plan: string) {
     checkout.mutate(plan, {
       onSuccess: (data) => {
         if (data.url) window.location.href = data.url;
       },
       onError: (err) => {
-        toast({ title: "Error", description: err.message, variant: "destructive" });
+        toast({ title: "Error", description: extractErrorMessage(err), variant: "destructive" });
       },
     });
   }
@@ -349,7 +361,7 @@ export default function Admin({ viewingUserId }: AdminProps) {
         if (data.url) window.location.href = data.url;
       },
       onError: (err) => {
-        toast({ title: "Error", description: err.message, variant: "destructive" });
+        toast({ title: "Suscripción", description: extractErrorMessage(err), variant: "destructive" });
       },
     });
   }
@@ -368,6 +380,9 @@ export default function Admin({ viewingUserId }: AdminProps) {
   const [socialYoutube, setSocialYoutube] = useState("");
   const [socialLinkedin, setSocialLinkedin] = useState("");
   const [googleMapsUrl, setGoogleMapsUrl] = useState("");
+
+  const [urlSlug, setUrlSlug] = useState("");
+  const [slugSaving, setSlugSaving] = useState(false);
 
   const [landingBgColor, setLandingBgColor] = useState("#0f172a");
   const [landingContainerColor, setLandingContainerColor] = useState("#1e293b");
@@ -401,6 +416,7 @@ export default function Admin({ viewingUserId }: AdminProps) {
     setLandingShowCatalog(settingsData.landing_show_catalog !== "false");
     setLandingShowMenu(settingsData.landing_show_menu !== "false");
     setLandingShowBooking(settingsData.landing_show_booking !== "false");
+    setUrlSlug(settingsData.url_slug || "");
   }, [settingsData, targetUserId]);
 
   function handleSaveWhatsappSettings() {
@@ -675,6 +691,41 @@ export default function Admin({ viewingUserId }: AdminProps) {
   }
 
   const landingUrl = `${window.location.origin}/landing/${targetUserId}`;
+  const shortLinkUrl = urlSlug ? `${window.location.origin}/l/${urlSlug}` : null;
+
+  function generateSlug(name: string, uid: string): string {
+    const suffix = uid.replace(/-/g, "").slice(-5);
+    const base = name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s]/g, "")
+      .trim()
+      .replace(/\s+/g, "-")
+      .slice(0, 28);
+    return base ? `${base}-${suffix}` : suffix;
+  }
+
+  function handleGenerateSlug() {
+    const name = profileName || user?.firstName || "negocio";
+    const newSlug = generateSlug(name, targetUserId);
+    setSlugSaving(true);
+    updateSettings.mutate({ url_slug: newSlug }, {
+      onSuccess: () => {
+        setUrlSlug(newSlug);
+        setSlugSaving(false);
+        toast({ title: "¡Enlace corto generado!", description: `Tu enlace: /l/${newSlug}` });
+      },
+      onError: () => setSlugSaving(false),
+    });
+  }
+
+  function copyShortLink() {
+    if (shortLinkUrl) {
+      navigator.clipboard.writeText(shortLinkUrl);
+      toast({ title: "¡Enlace Copiado!", description: "El enlace corto ha sido copiado." });
+    }
+  }
 
   function copyLandingLink() {
     navigator.clipboard.writeText(landingUrl);
@@ -1804,6 +1855,38 @@ export default function Admin({ viewingUserId }: AdminProps) {
                 </CardContent>
               </Card>
 
+              {/* Short Link Card */}
+              <Card className="bg-white border-border/50 shadow-sm">
+                <CardHeader className="bg-gray-50/50 border-b border-border/50">
+                  <CardTitle className="font-display text-lg flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-amber-500" />
+                    Enlace Corto Personalizado
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Genera un enlace corto y fácil de compartir en tus redes sociales o tarjetas que redirige directo a tu landing page.
+                  </p>
+                  {shortLinkUrl ? (
+                    <div className="flex items-center gap-2 flex-wrap bg-amber-50 border border-amber-200 p-3 rounded-xl">
+                      <Zap className="w-4 h-4 text-amber-600 shrink-0" />
+                      <code className="text-sm font-mono text-amber-900 font-bold flex-1 truncate">{shortLinkUrl}</code>
+                      <Button size="sm" variant="outline" onClick={copyShortLink} className="border-amber-300 text-amber-800 hover:bg-amber-100">
+                        <Copy className="w-3.5 h-3.5 mr-1.5" /> Copiar Enlace Corto
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={handleGenerateSlug} disabled={slugSaving} className="text-amber-700">
+                        Regenerar
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button onClick={handleGenerateSlug} disabled={slugSaving} className="bg-amber-500 hover:bg-amber-600 text-white">
+                      {slugSaving ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Zap className="w-4 h-4 mr-1.5" />}
+                      Generar Enlace Corto
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+
               {/* Appearance settings */}
               <Card className="bg-white border-border/50 shadow-sm">
                 <CardHeader className="bg-gray-50/50 border-b border-border/50">
@@ -2264,7 +2347,7 @@ export default function Admin({ viewingUserId }: AdminProps) {
                             />
                           </div>
                           <div className="flex items-center gap-2">
-                            <FaLinkedin className="h-5 w-5 text-blue-700" />
+                            <SiLinkedin className="h-5 w-5 text-blue-700" />
                             <Input
                               placeholder="https://linkedin.com/in/tu-perfil"
                               value={socialLinkedin}
@@ -2354,8 +2437,15 @@ export default function Admin({ viewingUserId }: AdminProps) {
                             <CheckCircle className="w-6 h-6 text-green-600" />
                           </div>
                           <div>
-                            <p className="font-semibold text-green-900">Suscripción Activa</p>
-                            <p className="text-sm text-green-700">
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-green-900">Suscripción Activa</p>
+                              {subscriptionStatus?.trialDaysLeft !== undefined && subscriptionStatus.trialDaysLeft > 0 && (
+                                <Badge className="bg-green-600 hover:bg-green-700 text-white text-xs">
+                                  {subscriptionStatus.trialDaysLeft} {subscriptionStatus.trialDaysLeft === 1 ? 'día restante' : 'días restantes'}
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-green-700 mt-0.5">
                               Plan: <span className="font-medium capitalize">{subscriptionStatus?.plan}</span>
                               {subscriptionStatus?.currentPeriodEnd && (
                                 <> &bull; Vence: {format(new Date(subscriptionStatus.currentPeriodEnd), "d 'de' MMM, yyyy", { locale: es })}</>
