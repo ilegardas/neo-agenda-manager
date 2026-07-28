@@ -185,7 +185,8 @@ export function MinutasTab() {
     },
   });
 
-  const businessName = profile?.profile_name || "Mi Empresa";
+  // Fallback para el nombre del negocio (prioriza perfil, luego MiGestión)
+  const businessName = profile?.profile_name || "MiGestión";
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -218,7 +219,7 @@ export function MinutasTab() {
   });
 
   const exportPDF = useCallback(() => {
-    const companyName = profile?.profile_name || "Mi Empresa";
+    const companyName = profile?.profile_name || "MiGestión";
     const companyLogo = profile?.profile_image
       ? `<img src="${profile.profile_image}" alt="Logo" style="max-height:50px;max-width:160px;object-fit:contain;" />`
       : "";
