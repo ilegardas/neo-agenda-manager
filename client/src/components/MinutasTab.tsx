@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useSettings } from "@/hooks/use-settings";
 import {
   Plus, Pencil, Trash2, Search, FileSpreadsheet, Printer,
   NotebookPen, Filter, X, Loader2
@@ -219,7 +220,8 @@ export function MinutasTab() {
   });
 
   const exportPDF = useCallback(() => {
-    const companyName = profile?.profile_name || "MiGestión";
+    const { data: settings } = useSettings();
+    const companyName =settings?.profile_name?.trim() || "Mi Empresa";
     const companyLogo = profile?.profile_image
       ? `<img src="${profile.profile_image}" alt="Logo" style="max-height:50px;max-width:160px;object-fit:contain;" />`
       : "";
