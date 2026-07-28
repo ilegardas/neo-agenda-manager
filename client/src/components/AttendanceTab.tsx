@@ -256,6 +256,17 @@ function EmployeeDialog({
   const [barcode, setBarcode] = useState<string>(initial?.barcode ?? "");
   const barcodeSvgRef = useRef<SVGSVGElement>(null);
 
+  // Obtener datos del perfil/negocio (Nombre y Logotipo)
+  const { data: profile } = useQuery<{ profile_name?: string; profile_image?: string }>({
+    queryKey: ["/api/profile"],
+    queryFn: async () => {
+      const res = await fetch("/api/profile", { credentials: "include" });
+      if (!res.ok) return {};
+      return res.json();
+    },
+    enabled: open,
+  });
+
   const isEdit = !!initial;
 
   useEffect(() => {
@@ -281,25 +292,43 @@ function EmployeeDialog({
     const svgEl = barcodeSvgRef.current;
     if (!svgEl) return;
     const svgContent = svgEl.outerHTML;
-    const win = window.open("", "_blank", "width=400,height=300");
+
+    const companyName = profile?.profile_name || "Mi Empresa";
+    const companyLogo = profile?.profile_image
+      ? `<img src="${profile.profile_image}" alt="Logo" style="max-height:60px;max-width:180px;object-fit:contain;margin-bottom:10px;" />`
+      : "";
+
+    const win = window.open("", "_blank", "width=450,height=550");
     if (!win) return;
     win.document.write(`<!DOCTYPE html><html><head><title>Credencial - ${name}</title>
       <style>
-        body { font-family: sans-serif; text-align: center; padding: 24px; background: white; }
-        h2 { margin: 0 0 4px; font-size: 18px; }
-        p { margin: 0 0 12px; color: #666; font-size: 13px; }
-        .pin { font-size: 24px; font-weight: bold; letter-spacing: 6px; margin: 8px 0 16px; }
-        svg { max-width: 100%; }
-        @media print { button { display: none; } }
+        body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: sans-serif; background: #fff; padding: 20px; box-sizing: border-box; }
+        .card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; text-align: center; width: 100%; max-width: 320px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .company-title { font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 12px; text-transform: uppercase; tracking: 1px; }
+        h2 { margin: 0 0 4px; font-size: 20px; color: #0f172a; font-weight: 700; }
+        p { margin: 0 0 12px; color: #64748b; font-size: 13px; }
+        .pin { font-size: 22px; font-weight: 700; letter-spacing: 5px; margin: 12px 0; color: #0284c7; background: #f0f9ff; padding: 6px 12px; border-radius: 8px; display: inline-block; }
+        svg { max-width: 100%; height: auto; }
+        @media print { button { display: none; } .card { border: none; box-shadow: none; } }
       </style></head><body>
-      <h2>${name}</h2>
-      ${position ? `<p>${position}</p>` : ""}
-      <div class="pin">PIN: ${pin || "—"}</div>
-      ${svgContent}
-      <br><button onclick="window.print()">🖨️ Imprimir</button>
+      <div class="card">
+        ${companyLogo}
+        <div class="company-title">${companyName}</div>
+        <h2>${name}</h2>
+        ${position ? `<p>${position}</p>` : ""}
+        <div class="pin">PIN: ${pin || "—"}</div>
+        <div style="margin-top:10px;">${svgContent}</div>
+      </div>
+      <br><button onclick="window.print()" style="padding:10px 20px;background:#0284c7;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer;">🖨️ Imprimir Credencial</button>
+      <script>
+        setTimeout(() => {
+          if (${Boolean(profile?.profile_image)}) window.print();
+        }, 500);
+      </script>
     </body></html>`);
     win.document.close();
-  }, [barcode, name, position, pin]);
+    win.focus();
+  }, [barcode, name, position, pin, profile]);
 
   const mutation = useMutation({
     mutationFn: async () => {
