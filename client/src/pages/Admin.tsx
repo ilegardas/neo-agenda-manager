@@ -1454,23 +1454,38 @@ export default function Admin({ viewingUserId }: AdminProps) {
                         onClick={() => {
                           const el = document.getElementById("menu-qr-print-area");
                           if (!el) return;
-                          const win = window.open("", "_blank", "width=400,height=500");
+                          const win = window.open("", "_blank", "width=450,height=600");
                           if (!win) return;
                           const svg = el.querySelector("svg")?.outerHTML || "";
                           const url = `${window.location.origin}/menu/${targetUserId}`;
-                          win.document.write(`<!DOCTYPE html><html><head><title>QR Menú</title><style>
-                            body{margin:0;display:flex;flex-direction:column;align-items:center;justify-center:center;min-height:100vh;font-family:sans-serif;background:#fff;padding:24px;box-sizing:border-box;}
+                          
+                          // Nombre dinámico y logotipo del perfil
+                          const displayName = profileName || myDisplayName || "Menú Digital";
+                          const logoHtml = profileImage 
+                            ? `<img src="${profileImage}" alt="Logo" style="max-height:80px;max-width:200px;object-fit:contain;margin-bottom:12px;" />` 
+                            : "";
+
+                          win.document.write(`<!DOCTYPE html><html><head><title>QR - ${displayName}</title><style>
+                            body{margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;background:#fff;padding:24px;box-sizing:border-box;}
+                            .header-container{text-align:center;margin-bottom:16px;display:flex;flex-direction:column;align-items:center;}
                             svg{width:260px;height:260px;}
                             p{margin-top:12px;font-size:12px;color:#555;text-align:center;word-break:break-all;max-width:260px;}
-                            h2{font-size:18px;font-weight:700;margin-bottom:8px;color:#0f172a;}
+                            h2{font-size:20px;font-weight:700;margin:0 0 4px 0;color:#0f172a;}
+                            .subtitle{font-size:13px;color:#64748b;margin-bottom:16px;}
                             @media print{button{display:none;}}
                           </style></head><body>
-                          <h2>Menú Digital</h2>${svg}<p>${url}</p>
-                          <button onclick="window.print()" style="margin-top:20px;padding:10px 24px;background:#6366f1;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;">Imprimir</button>
+                            <div class="header-container">
+                              ${logoHtml}
+                              <h2>${displayName}</h2>
+                              <span class="subtitle">Escanea para ver nuestro menú</span>
+                            </div>
+                            ${svg}
+                            <p>${url}</p>
+                            <button onclick="window.print()" style="margin-top:20px;padding:10px 24px;background:#6366f1;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;">Imprimir</button>
                           </body></html>`);
                           win.document.close();
                           win.focus();
-                          setTimeout(() => win.print(), 400);
+                          setTimeout(() => win.print(), profileImage ? 600 : 300);
                         }}
                         className="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
                       >
