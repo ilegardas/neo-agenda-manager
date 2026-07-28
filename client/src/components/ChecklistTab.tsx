@@ -18,7 +18,9 @@ export function ChecklistTab({ userId }: Props) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: settings } = useSettings();
+  
   const profileName = settings?.profile_name?.trim() || "Mi Empresa";
+  const profileImage = settings?.profile_image || "";
 
   // ── Checklists list ─────────────────────────────────────────────────────────
   const { data: lists = [], isLoading } = useQuery<Checklist[]>({
@@ -158,6 +160,11 @@ export function ChecklistTab({ userId }: Props) {
 
   const exportPDF = () => {
     if (!selected) return;
+
+    const logoHtml = profileImage
+      ? `<img src="${profileImage}" alt="Logo" style="max-height:60px;max-width:180px;object-fit:contain;" />`
+      : "";
+
     const titleRows = items
       .map(it => {
         if (it.type === "title") {
@@ -173,16 +180,25 @@ export function ChecklistTab({ userId }: Props) {
     const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"/>
 <style>
+  * { box-sizing: border-box; }
   body { font-family: Arial, sans-serif; margin: 0; padding: 32px; color: #111; }
-  h1 { text-align:center; font-size:28px; color:#fff; background:#1a56a0; padding:20px; margin:-32px -32px 8px; }
-  h2 { text-align:center; font-size:16px; color:#444; margin-bottom:24px; }
-  table { width:100%; border-collapse:collapse; }
-  @media print { body { padding:0; } h1 { margin: 0 0 8px; } }
+  .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #1a56a0; padding-bottom: 12px; }
+  .company-info { display: flex; flex-direction: column; }
+  .company-name { font-size: 20px; font-weight: bold; color: #1a56a0; text-transform: uppercase; }
+  .checklist-title { font-size: 15px; color: #555; margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  @media print { body { padding: 0; } }
 </style>
 </head><body>
-<h1>Checklist</h1>
-<h2>${selected.name}</h2>
-<p style="text-align:right;font-size:11px;color:#888;margin-bottom:12px;">${profileName}</p>
+<div class="header-container">
+  <div class="company-info">
+    <span class="company-name">${profileName}</span>
+    <span class="checklist-title">${selected.name}</span>
+  </div>
+  <div>
+    ${logoHtml}
+  </div>
+</div>
 <table>${titleRows}</table>
 </body></html>`;
 
@@ -191,7 +207,7 @@ export function ChecklistTab({ userId }: Props) {
     win.document.write(html);
     win.document.close();
     win.focus();
-    setTimeout(() => { win.print(); }, 400);
+    setTimeout(() => { win.print(); }, profileImage ? 500 : 300);
   };
 
   return (
