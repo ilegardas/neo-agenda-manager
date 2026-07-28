@@ -174,6 +174,19 @@ const STATUS_COLORS: Record<string, string> = {
 export function MinutasTab() {
   const { toast } = useToast();
   const { data: minutas = [], isLoading } = useMinutas();
+
+  // Obtener datos del perfil/negocio (Nombre y Logotipo)
+  const { data: profile } = useQuery<{ profile_name?: string; profile_image?: string }>({
+    queryKey: ["/api/profile"],
+    queryFn: async () => {
+      const res = await fetch("/api/profile", { credentials: "include" });
+      if (!res.ok) return {};
+      return res.json();
+    },
+  });
+
+  const businessName = profile?.profile_name || "Mi Empresa";
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dialog, setDialog] = useState<{ open: boolean; minuta?: Minuta | null }>({ open: false });
@@ -205,6 +218,11 @@ export function MinutasTab() {
   });
 
   const exportPDF = useCallback(() => {
+    const companyName = profile?.profile_name || "Mi Empresa";
+    const companyLogo = profile?.profile_image
+      ? `<img src="${profile.profile_image}" alt="Logo" style="max-height:50px;max-width:160px;object-fit:contain;" />`
+      : "";
+
     const rows = filtered.map(m => `
       <tr>
         <td><strong>${m.asunto}</strong></td>
@@ -215,13 +233,16 @@ export function MinutasTab() {
         <td><span class="badge ${m.status}">${m.status.charAt(0).toUpperCase() + m.status.slice(1)}</span></td>
         <td style="font-size:10px">${m.archivos || "—"}</td>
       </tr>`).join("");
+
     const win = window.open("", "_blank", "width=1100,height=800");
     if (!win) return;
-    win.document.write(`<!DOCTYPE html><html><head><title>Minutas</title>
+    win.document.write(`<!DOCTYPE html><html><head><title>Minutas - ${companyName}</title>
     <style>
       *{box-sizing:border-box;margin:0;padding:0}
       body{font-family:Arial,sans-serif;font-size:11px;color:#222;padding:20px}
-      h1{font-size:16px;margin-bottom:4px}
+      .header-container{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:2px solid #1d4ed8;padding-bottom:12px}
+      .company-name{font-size:18px;font-weight:700;color:#1e293b;text-transform:uppercase}
+      .report-title{font-size:14px;color:#64748b;margin-top:2px}
       .sub{color:#666;font-size:10px;margin-bottom:16px}
       table{width:100%;border-collapse:collapse}
       th{background:#1d4ed8;color:#fff;text-align:left;padding:6px 8px;font-size:10px}
@@ -233,7 +254,13 @@ export function MinutasTab() {
       .badge.urgente{background:#fee2e2;color:#991b1b}
       @media print{.btn{display:none}}
     </style></head><body>
-    <h1>Minutas</h1>
+    <div class="header-container">
+      <div>
+        <div class="company-name">${companyName}</div>
+        <div class="report-title">Reporte de Minutas</div>
+      </div>
+      <div>${companyLogo}</div>
+    </div>
     <p class="sub">Generado el ${format(new Date(), "d 'de' MMMM yyyy, HH:mm", { locale: es })} — ${filtered.length} registro(s)</p>
     <table>
       <thead><tr><th>Asunto</th><th>Anotación</th><th>Responsable</th><th>Fecha/Hora</th><th>Lugar</th><th>Estado</th><th>Archivos</th></tr></thead>
@@ -241,29 +268,53 @@ export function MinutasTab() {
     </table>
     <br>
     <button class="btn" onclick="window.print()" style="background:#1d4ed8;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:12px">🖨️ Imprimir / Guardar PDF</button>
+    <script>
+      setTimeout(() => {
+        if (${Boolean(profile?.profile_image)}) window.print();
+      }, 500);
+    </script>
     </body></html>`);
     win.document.close();
-  }, [filtered]);
+  }, [filtered, profile]);
 
   const exportExcel = useCallback(async () => {
     const XLSX = await import("xlsx");
-    const rows = filtered.map(m => ({
-      Asunto: m.asunto,
-      "Anotación": m.anotacion,
-      Responsable: m.responsable || "",
-      Fecha: m.fecha,
-      Hora: m.hora || "",
-      Lugar: m.lugar || "",
-      Estado: m.status,
-      Archivos: m.archivos || "",
-      Creado: m.createdAt ? format(new Date(m.createdAt), "yyyy-MM-dd HH:mm") : "",
-    }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    ws["!cols"] = [25, 50, 20, 12, 8, 20, 12, 30, 18].map(wch => ({ wch }));
+
+    const headerRows = [
+      [businessName.toUpperCase()],
+      [`REPORTE DE MINUTAS (${format(new Date(), "yyyy-MM-dd HH:mm")})`],
+      []
+    ];
+
+    const tableHeaders = [
+      "Asunto", "Anotación", "Responsable", "Fecha", "Hora", 
+      "Lugar", "Estado", "Archivos", "Creado"
+    ];
+
+    const dataRows = filtered.map(m => [
+      m.asunto,
+      m.anotacion,
+      m.responsable || "",
+      m.fecha,
+      m.hora || "",
+      m.lugar || "",
+      m.status,
+      m.archivos || "",
+      m.createdAt ? format(new Date(m.createdAt), "yyyy-MM-dd HH:mm") : "",
+    ]);
+
+    const sheetData = [...headerRows, tableHeaders, ...dataRows];
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+    ws["!cols"] = [
+      { wch: 25 }, { wch: 50 }, { wch: 20 }, { wch: 12 }, { wch: 8 }, 
+      { wch: 20 }, { wch: 12 }, { wch: 30 }, { wch: 18 }
+    ];
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Minutas");
     XLSX.writeFile(wb, `minutas-${new Date().toISOString().slice(0, 10)}.xlsx`);
-  }, [filtered]);
+  }, [filtered, businessName]);
 
   const hasFilters = search || statusFilter !== "all";
 
