@@ -177,6 +177,7 @@ export function MinutasTab() {
   const { data: minutas = [], isLoading } = useMinutas();
   const { data: settings } = useSettings();
 
+  // Nombre de la empresa con la misma lógica que ChecklistTab
   const profileName = settings?.profile_name?.trim() || "Mi Empresa";
   const profileImage = settings?.profile_image || "";
 
@@ -270,101 +271,38 @@ export function MinutasTab() {
     win.document.close();
   }, [filtered, profileName, profileImage]);
 
-  // Exportación a Excel decorado con estilos
   const exportExcel = useCallback(async () => {
-    let XLSX: any;
-    try {
-      // Intenta usar la versión extendida de estilos si está disponible, o cae en la estándar
-      XLSX = await import("xlsx-js-style").catch(() => import("xlsx"));
-    } catch {
-      XLSX = await import("xlsx");
-    }
+    const XLSX = await import("xlsx");
+
+    const headerRows = [
+      [profileName.toUpperCase()],
+      [`REPORTE DE MINUTAS (${format(new Date(), "yyyy-MM-dd HH:mm")})`],
+      []
+    ];
 
     const tableHeaders = [
       "Asunto", "Anotación", "Responsable", "Fecha", "Hora", 
       "Lugar", "Estado", "Archivos", "Creado"
     ];
 
-    // Estilos reutilizables
-    const headerTitleStyle = {
-      font: { name: "Calibri", sz: 16, bold: true, color: { rgb: "1E293B" } },
-    };
+    const dataRows = filtered.map(m => [
+      m.asunto,
+      m.anotacion,
+      m.responsable || "",
+      m.fecha,
+      m.hora || "",
+      m.lugar || "",
+      m.status,
+      m.archivos || "",
+      m.createdAt ? format(new Date(m.createdAt), "yyyy-MM-dd HH:mm") : "",
+    ]);
 
-    const headerSubStyle = {
-      font: { name: "Calibri", sz: 11, italic: true, color: { rgb: "64748B" } },
-    };
+    const sheetData = [...headerRows, tableHeaders, ...dataRows];
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
 
-    const columnHeaderStyle = {
-      font: { name: "Calibri", sz: 11, bold: true, color: { rgb: "FFFFFF" } },
-      fill: { fgColor: { rgb: "1D4ED8" } }, // Azul corporativo
-      alignment: { vertical: "center", horizontal: "left" },
-      border: {
-        bottom: { style: "medium", color: { rgb: "1E40AF" } }
-      }
-    };
-
-    const baseRowStyle = {
-      font: { name: "Calibri", sz: 10 },
-      alignment: { vertical: "top" },
-      border: {
-        bottom: { style: "thin", color: { rgb: "E2E8F0" } }
-      }
-    };
-
-    // Estilos de estado
-    const statusStyles: Record<string, any> = {
-      abierta:   { ...baseRowStyle, font: { name: "Calibri", sz: 10, bold: true, color: { rgb: "166534" } }, fill: { fgColor: { rgb: "DCFCE7" } } },
-      cerrada:   { ...baseRowStyle, font: { name: "Calibri", sz: 10, bold: true, color: { rgb: "475569" } }, fill: { fgColor: { rgb: "F1F5F9" } } },
-      pendiente: { ...baseRowStyle, font: { name: "Calibri", sz: 10, bold: true, color: { rgb: "854D0E" } }, fill: { fgColor: { rgb: "FEF9C3" } } },
-      urgente:   { ...baseRowStyle, font: { name: "Calibri", sz: 10, bold: true, color: { rgb: "991B1B" } }, fill: { fgColor: { rgb: "FEE2E2" } } },
-    };
-
-    // Estructura de celdas
-    const wsData: any[][] = [
-      [{ v: profileName.toUpperCase(), s: headerTitleStyle }],
-      [{ v: `REPORTE DE MINUTAS — ${format(new Date(), "d 'de' MMMM yyyy, HH:mm", { locale: es })}`, s: headerSubStyle }],
-      [], // Fila en blanco
-      tableHeaders.map(h => ({ v: h, s: columnHeaderStyle }))
-    ];
-
-    filtered.forEach(m => {
-      const statusKey = m.status.toLowerCase();
-      const currentStatusStyle = statusStyles[statusKey] || baseRowStyle;
-
-      wsData.push([
-        { v: m.asunto, s: baseRowStyle },
-        { v: m.anotacion, s: baseRowStyle },
-        { v: m.responsable || "—", s: baseRowStyle },
-        { v: m.fecha, s: baseRowStyle },
-        { v: m.hora || "—", s: baseRowStyle },
-        { v: m.lugar || "—", s: baseRowStyle },
-        { v: m.status.charAt(0).toUpperCase() + m.status.slice(1), s: currentStatusStyle },
-        { v: m.archivos || "—", s: baseRowStyle },
-        { v: m.createdAt ? format(new Date(m.createdAt), "yyyy-MM-dd HH:mm") : "—", s: baseRowStyle }
-      ]);
-    });
-
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-    // Ajustar altos de filas (Encabezados)
-    ws["!rows"] = [
-      { hpt: 24 }, // Titulo Empresa
-      { hpt: 18 }, // Subtitulo
-      { hpt: 10 }, // Espaciador
-      { hpt: 26 }, // Cabecera Tabla
-    ];
-
-    // Ajustar anchos de columnas
     ws["!cols"] = [
-      { wch: 28 }, // Asunto
-      { wch: 55 }, // Anotación
-      { wch: 22 }, // Responsable
-      { wch: 14 }, // Fecha
-      { wch: 10 }, // Hora
-      { wch: 22 }, // Lugar
-      { wch: 14 }, // Estado
-      { wch: 30 }, // Archivos
-      { wch: 18 }  // Creado
+      { wch: 25 }, { wch: 50 }, { wch: 20 }, { wch: 12 }, { wch: 8 }, 
+      { wch: 20 }, { wch: 12 }, { wch: 30 }, { wch: 18 }
     ];
 
     const wb = XLSX.utils.book_new();
