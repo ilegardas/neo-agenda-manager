@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useSettings } from "@/hooks/use-settings";
 import {
   Plus, Pencil, Trash2, Search, FileSpreadsheet, Printer,
   NotebookPen, Filter, X, Loader2
@@ -174,19 +175,11 @@ const STATUS_COLORS: Record<string, string> = {
 export function MinutasTab() {
   const { toast } = useToast();
   const { data: minutas = [], isLoading } = useMinutas();
+  const { data: settings } = useSettings();
 
-  // Obtener datos del perfil/negocio (Nombre y Logotipo)
-  const { data: profile } = useQuery<{ profile_name?: string; profile_image?: string }>({
-    queryKey: ["/api/profile"],
-    queryFn: async () => {
-      const res = await fetch("/api/profile", { credentials: "include" });
-      if (!res.ok) return {};
-      return res.json();
-    },
-  });
-
-  // Fallback para el nombre del negocio (prioriza perfil, luego MiGestión)
-  const businessName = profile?.profile_name || "MiGestión";
+  // Nombre de la empresa con la misma lógica que ChecklistTab
+  const profileName = settings?.profile_name?.trim() || "Mi Empresa";
+  const profileImage = settings?.profile_image || "";
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -219,9 +212,9 @@ export function MinutasTab() {
   });
 
   const exportPDF = useCallback(() => {
-    const companyName = profile?.profile_name || "MiGestión";
-    const companyLogo = profile?.profile_image
-      ? `<img src="${profile.profile_image}" alt="Logo" style="max-height:50px;max-width:160px;object-fit:contain;" />`
+    const companyName = profileName;
+    const companyLogo = profileImage
+      ? `<img src="${profileImage}" alt="Logo" style="max-height:50px;max-width:160px;object-fit:contain;" />`
       : "";
 
     const rows = filtered.map(m => `
@@ -271,18 +264,18 @@ export function MinutasTab() {
     <button class="btn" onclick="window.print()" style="background:#1d4ed8;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:12px">🖨️ Imprimir / Guardar PDF</button>
     <script>
       setTimeout(() => {
-        if (${Boolean(profile?.profile_image)}) window.print();
+        if (${Boolean(profileImage)}) window.print();
       }, 500);
     </script>
     </body></html>`);
     win.document.close();
-  }, [filtered, profile]);
+  }, [filtered, profileName, profileImage]);
 
   const exportExcel = useCallback(async () => {
     const XLSX = await import("xlsx");
 
     const headerRows = [
-      [businessName.toUpperCase()],
+      [profileName.toUpperCase()],
       [`REPORTE DE MINUTAS (${format(new Date(), "yyyy-MM-dd HH:mm")})`],
       []
     ];
@@ -315,7 +308,7 @@ export function MinutasTab() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Minutas");
     XLSX.writeFile(wb, `minutas-${new Date().toISOString().slice(0, 10)}.xlsx`);
-  }, [filtered, businessName]);
+  }, [filtered, profileName]);
 
   const hasFilters = search || statusFilter !== "all";
 
