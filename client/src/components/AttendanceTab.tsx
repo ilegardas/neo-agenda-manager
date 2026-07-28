@@ -92,6 +92,19 @@ function generateBarcode(empId?: number): string {
   return empId ? `E${String(empId).padStart(4, "0")}${rand}` : `E0000${rand}`;
 }
 
+
+// Obtener nombre del negocio y logotipo para encabezados
+  const { data: profile } = useQuery<{ profile_name?: string; profile_image?: string }>({
+    queryKey: ["/api/profile"],
+    queryFn: async () => {
+      const res = await fetch("/api/profile", { credentials: "include" });
+      if (!res.ok) return {};
+      return res.json();
+    },
+  });
+const businessName = profile?.profile_name || "Mi Empresa";
+
+
 // ── Sucursal dialog ────────────────────────────────────────────────────────────
 
 function SucursalDialog({
@@ -1116,24 +1129,48 @@ export function AttendanceTab({ userId }: Props) {
     window.location.href = url;
   };
 
-  // Export Excel (client-side using xlsx)
+  // Export Excel detallado (client-side using xlsx)
   const exportExcel = async () => {
     const XLSX = await import("xlsx");
     const typeLabel: Record<string, string> = { entrada: "Entrada", comida: "Salida a comer", regreso: "Entrada de comida", salida: "Salida" };
-    const rows = records.map(r => ({
-      ID: r.id,
-      Empleado: r.employeeName,
-      Sucursal: r.empSucursal ?? "",
-      Departamento: r.empDepartment ?? "",
-      "Jefe Directo": r.empJefeDirecto ?? "",
-      Tipo: typeLabel[r.type] ?? r.type,
-      Retardo: (r as any).isRetardo ? "Sí" : "No",
-      Fecha: r.checkDate,
-      Hora: r.checkTime,
-      "Motivo Retardo": (r as any).comentario ?? "",
-      IP: r.ip,
-    }));
-    const ws = XLSX.utils.json_to_sheet(rows);
+    
+    // 1. Filas de encabezado corporativo
+    const headerRows = [
+      [businessName.toUpperCase()],
+      [`REPORTE DETALLADO DE ASISTENCIAS (${filterFrom} AL ${filterTo})`],
+      [] // Fila en blanco de separación
+    ];
+
+    // 2. Datos de los registros
+    const dataRows = records.map(r => [
+      r.id,
+      r.employeeName,
+      r.empSucursal ?? "",
+      r.empDepartment ?? "",
+      r.empJefeDirecto ?? "",
+      typeLabel[r.type] ?? r.type,
+      (r as any).isRetardo ? "Sí" : "No",
+      r.checkDate,
+      r.checkTime,
+      (r as any).comentario ?? "",
+      r.ip,
+    ]);
+
+    const tableHeaders = [
+      "ID", "Empleado", "Sucursal", "Departamento", "Jefe Directo", 
+      "Tipo", "Retardo", "Fecha", "Hora", "Motivo Retardo", "IP"
+    ];
+
+    // Combinar encabezado del negocio + tabla
+    const sheetData = [...headerRows, tableHeaders, ...dataRows];
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+    // Ajustar anchos de columna
+    ws["!cols"] = [
+      { wch: 8 }, { wch: 22 }, { wch: 18 }, { wch: 18 }, { wch: 20 },
+      { wch: 18 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 25 }, { wch: 15 }
+    ];
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Asistencias");
     XLSX.writeFile(wb, `asistencias_${filterFrom}_${filterTo}.xlsx`);
@@ -1182,18 +1219,17 @@ export function AttendanceTab({ userId }: Props) {
       salida: "Salida",
     };
 
-    const rows: Record<string, string | number>[] = [];
+    const rows: (string | number)[][] = [];
 
     for (const { group, recs } of groupMap.values()) {
       const byType: Record<string, typeof records[0]> = {};
-      for (const r of recs) byType[r.type] = r; // last one wins per type per day
+      for (const r of recs) byType[r.type] = r;
 
       const entrada   = byType["entrada"];
       const comida    = byType["comida"];
       const regreso   = byType["regreso"];
       let   salidaRec = byType["salida"];
 
-      // If no salida, look up schedule endTime for that employee
       let salidaTime: string | null = salidaRec?.checkTime ?? null;
       let salidaIsVirtual = false;
       if (!salidaTime && group.empId != null) {
@@ -1204,13 +1240,12 @@ export function AttendanceTab({ userId }: Props) {
         }
       }
 
-      // Calculate total hours worked
       let horasNum: number | string = "";
       const entMin  = toMin(entrada?.checkTime);
       const salMin  = toMin(salidaTime);
       if (entMin != null && salMin != null) {
         let diff = salMin - entMin;
-        if (diff < 0) diff += 24 * 60; // overnight
+        if (diff < 0) diff += 24 * 60;
         const comMin = toMin(comida?.checkTime);
         const regMin = toMin(regreso?.checkTime);
         if (comMin != null && regMin != null) {
@@ -1221,7 +1256,6 @@ export function AttendanceTab({ userId }: Props) {
         horasNum = Math.max(0, parseFloat((diff / 60).toFixed(2)));
       }
 
-      // Build comments string
       const commentParts: string[] = [];
       for (const type of ["entrada", "comida", "regreso", "salida"] as const) {
         const rec = byType[type];
@@ -1231,35 +1265,51 @@ export function AttendanceTab({ userId }: Props) {
 
       const empData = group.empId != null ? employees.find(e => e.id === group.empId) : undefined;
 
-      rows.push({
-        "fecha registro": fmtDate(group.date),
-        "empleado":        group.empName,
-        "horas":           horasNum,
-        "ingreso":         fmtDt(group.date, entrada?.checkTime),
-        "salida a comer":  fmtDt(group.date, comida?.checkTime),
-        "regreso":         fmtDt(group.date, regreso?.checkTime),
-        "salida":          fmtDt(group.date, salidaTime),
-        "jefe directo":    empData?.jefeDirecto ?? "",
-        "Comentarios":     commentParts.join(" | "),
-      });
+      rows.push([
+        fmtDate(group.date),
+        group.empName,
+        horasNum,
+        fmtDt(group.date, entrada?.checkTime),
+        fmtDt(group.date, comida?.checkTime),
+        fmtDt(group.date, regreso?.checkTime),
+        fmtDt(group.date, salidaTime),
+        empData?.jefeDirecto ?? "",
+        commentParts.join(" | "),
+      ]);
     }
 
-    // Sort by date asc, then by employee name
+    // Ordenar por fecha asc y luego por nombre
     rows.sort((a, b) => {
-      const da = String(a["fecha registro"]), db = String(b["fecha registro"]);
+      const da = String(a[0]), db = String(b[0]);
       if (da !== db) return da < db ? -1 : 1;
-      return String(a["empleado"]).localeCompare(String(b["empleado"]));
+      return String(a[1]).localeCompare(String(b[1]));
     });
 
-    const headers = ["fecha registro", "empleado", "horas", "ingreso", "salida a comer", "regreso", "salida", "jefe directo", "Comentarios"];
-    const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
-    // Set column widths
-    ws["!cols"] = [{ wch: 14 }, { wch: 20 }, { wch: 7 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 40 }];
+    // Encabezados superiores del reporte
+    const headerRows = [
+      [businessName.toUpperCase()],
+      [`RESUMEN DE ASISTENCIAS Y HORAS TRABAJADAS (${filterFrom} AL ${filterTo})`],
+      []
+    ];
+
+    const tableHeaders = [
+      "fecha registro", "empleado", "horas", "ingreso", 
+      "salida a comer", "regreso", "salida", "jefe directo", "Comentarios"
+    ];
+
+    const sheetData = [...headerRows, tableHeaders, ...rows];
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+    // Definir anchos de columnas
+    ws["!cols"] = [
+      { wch: 14 }, { wch: 22 }, { wch: 8 }, { wch: 20 }, 
+      { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 40 }
+    ];
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Resumen");
     XLSX.writeFile(wb, `resumen_asistencias_${filterFrom}_${filterTo}.xlsx`);
   };
-
   const getScheduleName = (scheduleId: number | null | undefined) => {
     if (!scheduleId) return null;
     return schedules.find(s => s.id === scheduleId)?.name;
