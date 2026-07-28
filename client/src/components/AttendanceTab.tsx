@@ -92,19 +92,6 @@ function generateBarcode(empId?: number): string {
   return empId ? `E${String(empId).padStart(4, "0")}${rand}` : `E0000${rand}`;
 }
 
-
-// Obtener nombre del negocio y logotipo para encabezados
-  const { data: profile } = useQuery<{ profile_name?: string; profile_image?: string }>({
-    queryKey: ["/api/profile"],
-    queryFn: async () => {
-      const res = await fetch("/api/profile", { credentials: "include" });
-      if (!res.ok) return {};
-      return res.json();
-    },
-  });
-const businessName = profile?.profile_name || "Mi Empresa";
-
-
 // ── Sucursal dialog ────────────────────────────────────────────────────────────
 
 function SucursalDialog({
@@ -269,7 +256,6 @@ function EmployeeDialog({
   const [barcode, setBarcode] = useState<string>(initial?.barcode ?? "");
   const barcodeSvgRef = useRef<SVGSVGElement>(null);
 
-  // Obtener datos del perfil/negocio (Nombre y Logotipo)
   const { data: profile } = useQuery<{ profile_name?: string; profile_image?: string }>({
     queryKey: ["/api/profile"],
     queryFn: async () => {
@@ -1034,6 +1020,17 @@ export function AttendanceTab({ userId }: Props) {
   const { toast } = useToast();
   const [subTab, setSubTab] = useState("employees");
 
+  // Obtener nombre del negocio para encabezados de reportes
+  const { data: profile } = useQuery<{ profile_name?: string; profile_image?: string }>({
+    queryKey: ["/api/profile"],
+    queryFn: async () => {
+      const res = await fetch("/api/profile", { credentials: "include" });
+      if (!res.ok) return {};
+      return res.json();
+    },
+  });
+  const businessName = profile?.profile_name || "Mi Empresa";
+
   // Link copy state
   const checkinUrl = `${window.location.origin}/checkin/${userId}`;
   const [copied, setCopied] = useState(false);
@@ -1310,6 +1307,7 @@ export function AttendanceTab({ userId }: Props) {
     XLSX.utils.book_append_sheet(wb, ws, "Resumen");
     XLSX.writeFile(wb, `resumen_asistencias_${filterFrom}_${filterTo}.xlsx`);
   };
+
   const getScheduleName = (scheduleId: number | null | undefined) => {
     if (!scheduleId) return null;
     return schedules.find(s => s.id === scheduleId)?.name;
