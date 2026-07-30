@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Trash2, CheckCircle, XCircle, Clock, Calendar, Settings, Pencil, MessageCircle, Save, LogOut, Users, Link2, Copy, ChevronDown, ArrowLeft, ExternalLink, CreditCard, Loader2, Crown, AlertCircle, UserCircle, Upload, Camera, Sun, Moon, UtensilsCrossed, Plus, ImagePlus, Package, Eye, EyeOff, FileSpreadsheet, Search, Download, BarChart3, X, UserCheck, Images, ZoomIn, ChevronLeft, ChevronRight, Globe, Palette, Layout, RotateCcw, MapPin, Printer, QrCode, NotebookPen, ClipboardList, FolderKanban, Zap } from "lucide-react";
+import { Trash2, CheckCircle, XCircle, Clock, Calendar, Settings, Pencil, MessageCircle, Save, LogOut, Users, Link2, Copy, ChevronDown, ArrowLeft, ExternalLink, CreditCard, Loader2, Crown, AlertCircle, UserCircle, Upload, Camera, Sun, Moon, UtensilsCrossed, Plus, ImagePlus, Package, Eye, EyeOff, FileSpreadsheet, Search, Download, BarChart3, X, UserCheck, Images, ZoomIn, ChevronLeft, ChevronRight, Globe, Palette, Layout, RotateCcw, MapPin, Printer, QrCode, NotebookPen, ClipboardList, FolderKanban, Zap, CalendarPlus } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { AttendanceTab } from "@/components/AttendanceTab";
 import { MinutasTab } from "@/components/MinutasTab";
@@ -26,9 +26,9 @@ import {
   SiFacebook, 
   SiInstagram, 
   SiTiktok, 
-  SiYoutube 
+  SiYoutube,
+  SiLinkedin
 } from "react-icons/si";
-import { FaLinkedin } from "react-icons/fa";
 import { useTheme } from "@/hooks/use-theme";
 import { Footer } from "@/components/Footer";
 import { cn } from "@/lib/utils";
@@ -679,6 +679,17 @@ export default function Admin({ viewingUserId }: AdminProps) {
   const bookingUrl = `${window.location.origin}/book/${targetUserId}`;
   const catalogUrl = `${window.location.origin}/catalog/${targetUserId}`;
 
+  function buildGCalUrl(apt: any) {
+    const fmt = (d: Date) => format(d, "yyyyMMdd'T'HHmmss");
+    const title = encodeURIComponent(`Cita: ${apt.customerName}`);
+    const dates = `${fmt(new Date(apt.startTime))}/${fmt(new Date(apt.endTime))}`;
+    const details = encodeURIComponent(
+      [apt.notes ? `Nota: ${apt.notes}` : "", apt.customerPhone ? `Tel: ${apt.customerPhone}` : ""]
+        .filter(Boolean).join("\n")
+    );
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}`;
+  }
+
   function copyBookingLink() {
     navigator.clipboard.writeText(bookingUrl);
     toast({ title: "¡Enlace Copiado!", description: "El enlace de reservas ha sido copiado al portapapeles." });
@@ -1177,7 +1188,7 @@ export default function Admin({ viewingUserId }: AdminProps) {
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           {apt.customerPhone && (
                             <a
                               href={`https://wa.me/+52${apt.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${apt.customerName}, te contactamos sobre tu cita del ${format(new Date(apt.startTime), "d 'de' MMMM", { locale: es })} a las ${format(new Date(apt.startTime), "h:mm a")}.`)}`}
@@ -1191,6 +1202,22 @@ export default function Admin({ viewingUserId }: AdminProps) {
                                 className="border-green-200 text-green-600 hover:bg-green-50 hover:border-green-300"
                               >
                                 <SiWhatsapp className="h-5 w-5 text-green-500" /> WhatsApp
+                              </Button>
+                            </a>
+                          )}
+                          {apt.status !== 'cancelled' && (
+                            <a
+                              href={buildGCalUrl(apt)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              data-testid={`link-gcal-${apt.id}`}
+                            >
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300"
+                              >
+                                <CalendarPlus className="w-4 h-4 mr-1.5" /> Google Calendar
                               </Button>
                             </a>
                           )}
@@ -2361,7 +2388,7 @@ export default function Admin({ viewingUserId }: AdminProps) {
                             />
                           </div>
                           <div className="flex items-center gap-2">
-                            <FaLinkedin className="h-5 w-5 text-blue-700" />
+                            <SiLinkedin className="h-5 w-5 text-blue-700" />
                             <Input
                               placeholder="https://linkedin.com/in/tu-perfil"
                               value={socialLinkedin}
