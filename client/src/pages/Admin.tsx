@@ -26,9 +26,9 @@ import {
   SiFacebook, 
   SiInstagram, 
   SiTiktok, 
-  SiYoutube,
-  SiLinkedin
+  SiYoutube 
 } from "react-icons/si";
+import { FaLinkedin } from "react-icons/fa";
 import { useTheme } from "@/hooks/use-theme";
 import { Footer } from "@/components/Footer";
 import { cn } from "@/lib/utils";
@@ -2388,7 +2388,7 @@ export default function Admin({ viewingUserId }: AdminProps) {
                             />
                           </div>
                           <div className="flex items-center gap-2">
-                            <SiLinkedin className="h-5 w-5 text-blue-700" />
+                            <FaLinkedin className="h-5 w-5 text-blue-700" />
                             <Input
                               placeholder="https://linkedin.com/in/tu-perfil"
                               value={socialLinkedin}
