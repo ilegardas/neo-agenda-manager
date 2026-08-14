@@ -1896,37 +1896,7 @@ export default function Admin({ viewingUserId }: AdminProps) {
                 </CardContent>
               </Card>
 
-              {/* Short Link Card */}
-              <Card className="bg-white border-border/50 shadow-sm">
-                <CardHeader className="bg-gray-50/50 border-b border-border/50">
-                  <CardTitle className="font-display text-lg flex items-center gap-2">
-                    <Zap className="w-5 h-5 text-amber-500" />
-                    Enlace Corto Personalizado
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6 space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Genera un enlace corto y fácil de compartir en tus redes sociales o tarjetas que redirige directo a tu landing page.
-                  </p>
-                  {shortLinkUrl ? (
-                    <div className="flex items-center gap-2 flex-wrap bg-amber-50 border border-amber-200 p-3 rounded-xl">
-                      <Zap className="w-4 h-4 text-amber-600 shrink-0" />
-                      <code className="text-sm font-mono text-amber-900 font-bold flex-1 truncate">{shortLinkUrl}</code>
-                      <Button size="sm" variant="outline" onClick={copyShortLink} className="border-amber-300 text-amber-800 hover:bg-amber-100">
-                        <Copy className="w-3.5 h-3.5 mr-1.5" /> Copiar Enlace Corto
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={handleGenerateSlug} disabled={slugSaving} className="text-amber-700">
-                        Regenerar
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button onClick={handleGenerateSlug} disabled={slugSaving} className="bg-amber-500 hover:bg-amber-600 text-white">
-                      {slugSaving ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Zap className="w-4 h-4 mr-1.5" />}
-                      Generar Enlace Corto
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
+              
 
               {/* Appearance settings */}
               <Card className="bg-white border-border/50 shadow-sm">
