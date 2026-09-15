@@ -288,7 +288,7 @@ export default function Landing() {
     <div className="min-h-screen flex flex-col bg-white dark:bg-background overflow-x-hidden">
       <LandingHeader theme={theme} toggleTheme={toggleTheme} onLogin={() => setMode("login")} onRegister={() => setMode("register")} onHome={() => {}} />
 
-      {/* HERO HERO SECTION */}
+      {/* HERO SECTION */}
       <section className="relative overflow-hidden bg-slate-950 text-white py-20 md:py-28">
         <div className="absolute inset-0 opacity-25" style={{backgroundImage: "radial-gradient(circle at 20% 40%, #2563eb 0%, transparent 50%), radial-gradient(circle at 80% 60%, #10b981 0%, transparent 40%)"}} />
 
@@ -302,7 +302,7 @@ export default function Landing() {
                 App PWA: Instálala en Celular y PC sin tiendas
               </div>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 leading-[1.15]">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 leading-[1.15] text-white">
                 Todo tu negocio bajo control: <br />
                 <span className="bg-gradient-to-r from-blue-400 via-cyan-300 to-emerald-400 bg-clip-text text-transparent">
                   Citas, Menú y Checador GPS
@@ -346,21 +346,21 @@ export default function Landing() {
                 <div className="flex items-center gap-3 pb-4 border-b border-slate-800 mb-6">
                   <img src={logoImg} alt="migestion.pro" className="h-12 w-12 rounded-full object-cover shadow" />
                   <div>
-                    <div className="font-bold text-lg">migestion.pro</div>
+                    <div className="font-bold text-lg text-white">migestion.pro</div>
                     <div className="text-xs text-slate-400">Plataforma Cloud para Pymes</div>
                   </div>
                 </div>
 
                 <div className="space-y-4 mb-6">
-                  <div className="flex items-center justify-between p-3 bg-slate-800/60 rounded-lg text-sm">
+                  <div className="flex items-center justify-between p-3 bg-slate-800/60 rounded-lg text-sm text-white">
                     <span className="flex items-center gap-2"><Calendar className="w-4 h-4 text-blue-400" /> Agenda pública</span>
                     <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded font-medium">Activa</span>
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-slate-800/60 rounded-lg text-sm">
+                  <div className="flex items-center justify-between p-3 bg-slate-800/60 rounded-lg text-sm text-white">
                     <span className="flex items-center gap-2"><UtensilsCrossed className="w-4 h-4 text-amber-400" /> Menú / Catálogo</span>
                     <span className="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-medium">Publicado</span>
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-slate-800/60 rounded-lg text-sm">
+                  <div className="flex items-center justify-between p-3 bg-slate-800/60 rounded-lg text-sm text-white">
                     <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-emerald-400" /> Checador GPS Sucursales</span>
                     <span className="text-xs bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-medium">GPS Activo</span>
                   </div>
@@ -412,7 +412,7 @@ export default function Landing() {
             <div className="inline-flex items-center gap-2 text-emerald-400 text-sm font-bold uppercase tracking-wider">
               <Smartphone className="w-4 h-4" /> Tecnología PWA
             </div>
-            <h3 className="text-2xl sm:text-3xl font-bold">Instálalo en tu Teléfono o Computadora</h3>
+            <h3 className="text-2xl sm:text-3xl font-bold text-white">Instálalo en tu Teléfono o Computadora</h3>
             <p className="text-slate-300 text-sm max-w-xl">
               Sin ocupar espacio pesado ni pasar por la App Store o Google Play. Accede directamente como un icono en la pantalla de inicio de tus celulares o PC.
             </p>
@@ -500,7 +500,7 @@ export default function Landing() {
       {/* CTA FOOTER */}
       <section className="py-16 px-4 bg-slate-950 text-white text-center">
         <div className="max-w-3xl mx-auto space-y-6">
-          <h2 className="text-3xl font-bold">Empieza a gestionar tu negocio hoy</h2>
+          <h2 className="text-3xl font-bold text-white">Empieza a gestionar tu negocio hoy</h2>
           <p className="text-slate-400">Publica tu menú, habilita tu agenda de citas y controla tu personal desde un solo lugar.</p>
           <Button
             size="lg"
