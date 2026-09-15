@@ -4,9 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Clock, Calendar, MessageCircle, Users, LogIn, UserPlus, Loader2, Eye, EyeOff,
+  Clock, Calendar, LogIn, UserPlus, Loader2, Eye, EyeOff,
   Sun, Moon, UtensilsCrossed, Grid3X3, Smartphone, MapPin, FileText, CheckSquare,
-  BarChart3, ChevronRight, Zap, Shield, Star, ArrowRight, FolderKanban
+  BarChart3, Zap, Shield, Star, ArrowRight, FolderKanban, Check, Sparkles, Laptop, Monitor
 } from "lucide-react";
 import logoImg from "@assets/logo_migestion_png_1773789215959.png";
 import { Footer } from "@/components/Footer";
@@ -15,94 +15,49 @@ import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/hooks/use-theme";
 
-const FEATURES = [
-  {
-    icon: UtensilsCrossed,
-    color: "from-orange-500 to-amber-400",
-    bg: "bg-orange-50 dark:bg-orange-950/30",
-    text: "text-orange-600 dark:text-orange-400",
-    title: "Menú Online",
-    desc: "Digitaliza tu menú de restaurant, cafetería o food truck. Actualízalo en tiempo real, sin apps ni impresiones.",
-  },
-  {
-    icon: Grid3X3,
-    color: "from-violet-500 to-purple-400",
-    bg: "bg-violet-50 dark:bg-violet-950/30",
-    text: "text-violet-600 dark:text-violet-400",
-    title: "Catálogo de Servicios",
-    desc: "Presenta tus servicios, promociones y productos con fotos, precios y descripciones atractivas.",
-  },
+const MAIN_FEATURES = [
   {
     icon: Calendar,
     color: "from-blue-500 to-cyan-400",
     bg: "bg-blue-50 dark:bg-blue-950/30",
     text: "text-blue-600 dark:text-blue-400",
-    title: "Agenda de Citas",
-    desc: "Página pública de reservas personalizada. Tus clientes eligen horario y reciben confirmación al instante.",
+    title: "Agenda de Citas Online",
+    desc: "Tus clientes reservan 24/7 desde su celular. Confirmaciones automáticas y gestión de horarios sin llamadas.",
   },
   {
-    icon: Smartphone,
-    color: "from-teal-500 to-emerald-400",
-    bg: "bg-teal-50 dark:bg-teal-950/30",
-    text: "text-teal-600 dark:text-teal-400",
-    title: "Landing Page + App",
-    desc: "Crea el sitio web de tu negocio e instálalo como aplicación en cualquier celular sin ir a la tienda de apps.",
+    icon: UtensilsCrossed,
+    color: "from-amber-500 to-orange-400",
+    bg: "bg-amber-50 dark:bg-amber-950/30",
+    text: "text-amber-600 dark:text-amber-400",
+    title: "Menú & Catálogo Digital",
+    desc: "Publica tus productos, platillos o servicios con fotos y precios. Tu propia Landing Page lista para vender.",
   },
   {
     icon: Clock,
-    color: "from-rose-500 to-pink-400",
-    bg: "bg-rose-50 dark:bg-rose-950/30",
-    text: "text-rose-600 dark:text-rose-400",
-    title: "Reloj Checador",
-    desc: "Control de asistencia con verificación GPS por sucursal. Reportes automáticos enviados directo a tu correo.",
-  },
-  {
-    icon: MapPin,
-    color: "from-red-500 to-orange-400",
-    bg: "bg-red-50 dark:bg-red-950/30",
-    text: "text-red-600 dark:text-red-400",
-    title: "Control por Sucursal",
-    desc: "Define geofences por sucursal. Solo se puede checar desde la ubicación autorizada, sin trampas.",
-  },
-  {
-    icon: FileText,
-    color: "from-indigo-500 to-blue-400",
-    bg: "bg-indigo-50 dark:bg-indigo-950/30",
-    text: "text-indigo-600 dark:text-indigo-400",
-    title: "Minutas de Reunión",
-    desc: "Documenta acuerdos y tareas de cada reunión. Mantén a tu equipo alineado con historial completo.",
-  },
-  {
-    icon: CheckSquare,
-    color: "from-green-500 to-emerald-400",
-    bg: "bg-green-50 dark:bg-green-950/30",
-    text: "text-green-600 dark:text-green-400",
-    title: "Checklist de Tareas",
-    desc: "Gestiona listas de tareas pendientes para tu equipo. Marca progreso y mantén control de pendientes.",
-  },
-  {
-    icon: FolderKanban,
-    color: "from-purple-500 to-indigo-400",
-    bg: "bg-purple-50 dark:bg-purple-950/30",
-    text: "text-purple-600 dark:text-purple-400",
-    title: "Proyectos Scrum",
-    desc: "Organiza proyectos con tableros Kanban, backlog y sprints. Asigna responsables y da seguimiento a tu equipo.",
-  },
-  {
-    icon: BarChart3,
-    color: "from-sky-500 to-blue-400",
-    bg: "bg-sky-50 dark:bg-sky-950/30",
-    text: "text-sky-600 dark:text-sky-400",
-    title: "Reportes de Citas",
-    desc: "Visualiza citas confirmadas, canceladas y asistencia. Estadísticas claras para tomar mejores decisiones.",
+    color: "from-emerald-500 to-teal-400",
+    bg: "bg-emerald-50 dark:bg-emerald-950/30",
+    text: "text-emerald-600 dark:text-emerald-400",
+    title: "Checador GPS Multisucursal",
+    desc: "Control de asistencia de tus empleados con validación geográfica. Evita trampas y recibe reportes en tu correo.",
   },
 ];
 
-const STATS = [
-  { value: "10+", label: "Módulos integrados" },
-  { value: "100%", label: "En la nube" },
-  { value: "PWA", label: "Instala como app" },
-  { value: "MXN", label: "Precios en pesos" },
+const OTHER_FEATURES = [
+  { icon: Smartphone, title: "App PWA Instalable", desc: "Instálala en Android, iOS o PC en 1 clic como acceso rápido, sin tiendas de apps." },
+  { icon: MapPin, title: "Geofencing por Sucursal", desc: "Define ubicaciones permitidas para checar asistencia por cada sucursal." },
+  { icon: FileText, title: "Minutas de Reunión", desc: "Documenta acuerdos, compromisos y tareas tras cada sesión de trabajo." },
+  { icon: CheckSquare, title: "Checklist de Tareas", desc: "Asigna pendientes operativos y monitorea el avance en tiempo real." },
+  { icon: FolderKanban, title: "Tableros Kanban/Scrum", desc: "Organiza proyectos de tu equipo con sprints, backlog y responsables." },
+  { icon: BarChart3, title: "Reportes & Métricas", desc: "Estadísticas claras de citas, ventas y asistencia para tomar decisiones." },
+];
+
+const PLAN_BENEFITS = [
+  "Agenda de Citas Ilimitada",
+  "Menú & Catálogo Digital interactivo",
+  "Reloj Checador con GPS Multisucursal",
+  "Aplicación PWA para Celular y Computadora",
+  "Gestión de Proyectos, Minutas y Tareas",
+  "Soporte y actualizaciones continuas",
 ];
 
 export default function Landing() {
@@ -232,7 +187,7 @@ export default function Landing() {
                   <LogIn className="w-8 h-8 text-primary" />
                 </div>
                 <h2 className="text-2xl font-bold">Iniciar Sesión</h2>
-                <p className="text-sm text-muted-foreground mt-1">Ingresa con tu cuenta</p>
+                <p className="text-sm text-muted-foreground mt-1">Ingresa a tu panel de control</p>
               </div>
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
@@ -258,8 +213,8 @@ export default function Landing() {
                   <button onClick={() => setMode("forgot")} className="text-primary hover:underline" data-testid="link-forgot-password">¿Olvidaste tu contraseña?</button>
                 </div>
                 <div>
-                  ¿No tienes cuenta?{" "}
-                  <button onClick={() => { setMode("register"); resetForm(); }} className="text-primary font-semibold hover:underline" data-testid="link-go-register">Registrarse</button>
+                  ¿Aún no tienes cuenta?{" "}
+                  <button onClick={() => { setMode("register"); resetForm(); }} className="text-primary font-semibold hover:underline" data-testid="link-go-register">Crear mi cuenta</button>
                 </div>
               </div>
             </CardContent>
@@ -281,8 +236,8 @@ export default function Landing() {
                 <div className="mx-auto bg-primary/10 p-3 rounded-xl w-fit mb-4">
                   <UserPlus className="w-8 h-8 text-primary" />
                 </div>
-                <h2 className="text-2xl font-bold">Crear Cuenta</h2>
-                <p className="text-sm text-muted-foreground mt-1">Registra tu negocio en migestion.pro</p>
+                <h2 className="text-2xl font-bold">Registrar mi Negocio</h2>
+                <p className="text-sm text-muted-foreground mt-1">Acceso inmediato a todos los módulos por $300/mes</p>
               </div>
               <form onSubmit={handleRegister} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
@@ -312,9 +267,9 @@ export default function Landing() {
                     </button>
                   </div>
                 </div>
-                <Button type="submit" className="w-full h-11 font-semibold" disabled={register.isPending} data-testid="button-register-submit">
+                <Button type="submit" className="w-full h-11 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white" disabled={register.isPending} data-testid="button-register-submit">
                   {register.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <UserPlus className="w-4 h-4 mr-2" />}
-                  Crear Cuenta
+                  Comenzar Ahora
                 </Button>
               </form>
               <p className="text-center text-sm text-muted-foreground mt-6">
@@ -333,97 +288,116 @@ export default function Landing() {
     <div className="min-h-screen flex flex-col bg-white dark:bg-background overflow-x-hidden">
       <LandingHeader theme={theme} toggleTheme={toggleTheme} onLogin={() => setMode("login")} onRegister={() => setMode("register")} onHome={() => {}} />
 
-      {/* HERO */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-900 text-white">
-        <div className="absolute inset-0 opacity-20" style={{backgroundImage: "radial-gradient(circle at 20% 50%, #3b82f6 0%, transparent 50%), radial-gradient(circle at 80% 20%, #8b5cf6 0%, transparent 40%), radial-gradient(circle at 60% 80%, #06b6d4 0%, transparent 40%)"}} />
-        <div className="absolute inset-0" style={{backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")"}} />
+      {/* HERO HERO SECTION */}
+      <section className="relative overflow-hidden bg-slate-950 text-white py-20 md:py-28">
+        <div className="absolute inset-0 opacity-25" style={{backgroundImage: "radial-gradient(circle at 20% 40%, #2563eb 0%, transparent 50%), radial-gradient(circle at 80% 60%, #10b981 0%, transparent 40%)"}} />
 
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
-          <div className="flex flex-col items-center text-center">
-            <div className="mb-6 relative">
-              <div className="absolute inset-0 bg-blue-400 rounded-full blur-2xl opacity-30 scale-150" />
-              <img src={logoImg} alt="migestion.pro" className="relative h-24 w-24 rounded-full object-cover shadow-2xl ring-4 ring-white/20" />
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            
+            {/* Left Content */}
+            <div className="lg:col-span-7 text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-4 py-1.5 text-sm font-semibold text-emerald-400 mb-6">
+                <Sparkles className="w-4 h-4" />
+                App PWA: Instálala en Celular y PC sin tiendas
+              </div>
+
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 leading-[1.15]">
+                Todo tu negocio bajo control: <br />
+                <span className="bg-gradient-to-r from-blue-400 via-cyan-300 to-emerald-400 bg-clip-text text-transparent">
+                  Citas, Menú y Checador GPS
+                </span>
+              </h1>
+
+              <p className="text-lg md:text-xl text-slate-300 max-w-2xl mb-8 leading-relaxed mx-auto lg:mx-0">
+                La solución integral en la nube para gestionar tus sucursales, automatizar tus citas online y controlar la asistencia de tus empleados en tiempo real.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                <Button
+                  size="lg"
+                  className="h-14 px-8 text-lg font-bold bg-emerald-500 hover:bg-emerald-600 text-white border-0 shadow-lg shadow-emerald-500/25 transition-all"
+                  onClick={() => setMode("register")}
+                  data-testid="button-hero-register"
+                >
+                  <UserPlus className="w-5 h-5 mr-2" />
+                  Empieza por $300 MXN/mes
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="h-14 px-8 text-lg font-semibold border-slate-700 text-white hover:bg-slate-900 bg-transparent"
+                  onClick={() => setMode("login")}
+                  data-testid="button-hero-login"
+                >
+                  <LogIn className="w-5 h-5 mr-2" />
+                  Iniciar Sesión
+                </Button>
+              </div>
+
+              <p className="text-xs text-slate-400 mt-4">
+                ✓ Sin contratos forzosos &nbsp;•&nbsp; ✓ Configuración en minutos
+              </p>
             </div>
 
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-1.5 text-sm font-medium mb-6">
-              <Zap className="w-3.5 h-3.5 text-yellow-400" />
-              Plataforma todo-en-uno para tu negocio
-            </div>
-
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight mb-6 leading-tight">
-              Digitaliza tu negocio con
-              <span className="block bg-gradient-to-r from-blue-400 via-cyan-300 to-teal-300 bg-clip-text text-transparent">
-                migestion.pro
-              </span>
-            </h1>
-
-            <p className="text-lg md:text-xl text-blue-100/80 max-w-2xl mb-10 leading-relaxed">
-              Menú online, catálogo, citas, reloj checador, landing page instalable, minutas, proyectos Scrum y más — todo integrado en una sola plataforma para empresas mexicanas.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button
-                size="lg"
-                className="h-14 px-8 text-lg font-bold bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 border-0 shadow-xl shadow-blue-500/30"
-                onClick={() => setMode("register")}
-                data-testid="button-hero-register"
-              >
-                <UserPlus className="w-5 h-5 mr-2" />
-                Comenzar Gratis
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="h-14 px-8 text-lg font-semibold border-white/30 text-white hover:bg-white/10 hover:text-white bg-transparent"
-                onClick={() => setMode("login")}
-                data-testid="button-hero-login"
-              >
-                <LogIn className="w-5 h-5 mr-2" />
-                Iniciar Sesión
-              </Button>
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mt-16 w-full max-w-2xl">
-              {STATS.map((s) => (
-                <div key={s.label} className="text-center">
-                  <div className="text-3xl font-extrabold text-white">{s.value}</div>
-                  <div className="text-xs text-blue-300 mt-1">{s.label}</div>
+            {/* Right Card / Visual */}
+            <div className="lg:col-span-5 flex justify-center">
+              <div className="relative w-full max-w-md bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-md">
+                <div className="flex items-center gap-3 pb-4 border-b border-slate-800 mb-6">
+                  <img src={logoImg} alt="migestion.pro" className="h-12 w-12 rounded-full object-cover shadow" />
+                  <div>
+                    <div className="font-bold text-lg">migestion.pro</div>
+                    <div className="text-xs text-slate-400">Plataforma Cloud para Pymes</div>
+                  </div>
                 </div>
-              ))}
+
+                <div className="space-y-4 mb-6">
+                  <div className="flex items-center justify-between p-3 bg-slate-800/60 rounded-lg text-sm">
+                    <span className="flex items-center gap-2"><Calendar className="w-4 h-4 text-blue-400" /> Agenda pública</span>
+                    <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded font-medium">Activa</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-slate-800/60 rounded-lg text-sm">
+                    <span className="flex items-center gap-2"><UtensilsCrossed className="w-4 h-4 text-amber-400" /> Menú / Catálogo</span>
+                    <span className="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-medium">Publicado</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-slate-800/60 rounded-lg text-sm">
+                    <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-emerald-400" /> Checador GPS Sucursales</span>
+                    <span className="text-xs bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-medium">GPS Activo</span>
+                  </div>
+                </div>
+
+                <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-4 text-center">
+                  <span className="text-xs uppercase tracking-wider text-emerald-400 font-bold block mb-1">Precio Transparente</span>
+                  <div className="text-3xl font-extrabold text-white">$300 <span className="text-sm font-normal text-slate-300">MXN / mes</span></div>
+                </div>
+              </div>
             </div>
+
           </div>
         </div>
-
-        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white dark:from-background to-transparent" />
       </section>
 
-      {/* FEATURES */}
+      {/* THREE PRINCIPAL MODULES */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white dark:bg-background">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-14">
-            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 text-sm font-semibold mb-4">
-              <Grid3X3 className="w-4 h-4" />
-              Módulos disponibles
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-foreground">
-              Todo lo que tu empresa necesita
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-foreground">
+              Las 3 Herramientas Clave para tu Empresa
             </h2>
-            <p className="text-muted-foreground mt-3 text-lg max-w-xl mx-auto">
-              Cada módulo funciona de forma independiente o en conjunto. Tú decides qué activar.
+            <p className="text-muted-foreground mt-3 text-lg max-w-2xl mx-auto">
+              Diseñadas para simplificar las operaciones diarias de negocios locales y servicios.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {FEATURES.map((f) => (
-              <Card key={f.title} className="group border border-border/60 hover:border-primary/30 hover:shadow-lg transition-all duration-300 overflow-hidden">
-                <CardContent className="p-6">
-                  <div className={`w-12 h-12 rounded-xl ${f.bg} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                    <f.icon className={`w-6 h-6 ${f.text}`} />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {MAIN_FEATURES.map((f) => (
+              <Card key={f.title} className="border border-border shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
+                <CardContent className="p-8">
+                  <div className={`w-14 h-14 rounded-2xl ${f.bg} flex items-center justify-center mb-6`}>
+                    <f.icon className={`w-7 h-7 ${f.text}`} />
                   </div>
-                  <h3 className="font-bold text-gray-900 dark:text-foreground text-lg mb-2">{f.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-foreground mb-3">{f.title}</h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed mb-6">{f.desc}</p>
                 </CardContent>
               </Card>
             ))}
@@ -431,64 +405,110 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* WHY US */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-card/50">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div className="space-y-3">
-              <div className="mx-auto w-14 h-14 bg-blue-100 dark:bg-blue-950/50 rounded-2xl flex items-center justify-center">
-                <Zap className="w-7 h-7 text-blue-600 dark:text-blue-400" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-foreground">Rápido de configurar</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">En minutos tienes tu página de citas, menú o catálogo publicado y listo para compartir con tus clientes.</p>
+      {/* PWA FEATURE BANNER */}
+      <section className="py-16 px-4 bg-slate-900 text-white">
+        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="space-y-3 text-center md:text-left">
+            <div className="inline-flex items-center gap-2 text-emerald-400 text-sm font-bold uppercase tracking-wider">
+              <Smartphone className="w-4 h-4" /> Tecnología PWA
             </div>
-            <div className="space-y-3">
-              <div className="mx-auto w-14 h-14 bg-green-100 dark:bg-green-950/50 rounded-2xl flex items-center justify-center">
-                <Shield className="w-7 h-7 text-green-600 dark:text-green-400" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-foreground">Seguro y confiable</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">Tus datos y los de tus clientes están protegidos. Backups automáticos y disponibilidad 24/7 garantizada.</p>
+            <h3 className="text-2xl sm:text-3xl font-bold">Instálalo en tu Teléfono o Computadora</h3>
+            <p className="text-slate-300 text-sm max-w-xl">
+              Sin ocupar espacio pesado ni pasar por la App Store o Google Play. Accede directamente como un icono en la pantalla de inicio de tus celulares o PC.
+            </p>
+          </div>
+          <div className="flex gap-4">
+            <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 px-4 py-3 rounded-xl text-sm font-medium">
+              <Smartphone className="w-5 h-5 text-emerald-400" /> Móvil (iOS/Android)
             </div>
-            <div className="space-y-3">
-              <div className="mx-auto w-14 h-14 bg-purple-100 dark:bg-purple-950/50 rounded-2xl flex items-center justify-center">
-                <Star className="w-7 h-7 text-purple-600 dark:text-purple-400" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-foreground">Hecho para México</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">Precios en MXN, soporte en español, diseñado pensando en la operación diaria de negocios mexicanos.</p>
+            <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 px-4 py-3 rounded-xl text-sm font-medium">
+              <Laptop className="w-5 h-5 text-blue-400" /> Escritorio (PC/Mac)
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-900 text-white relative overflow-hidden">
-        <div className="absolute inset-0 opacity-20" style={{backgroundImage: "radial-gradient(circle at 30% 50%, #3b82f6 0%, transparent 60%), radial-gradient(circle at 70% 50%, #8b5cf6 0%, transparent 60%)"}} />
-        <div className="relative max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-extrabold mb-4">¿Listo para digitalizar tu negocio?</h2>
-          <p className="text-blue-200/80 text-lg mb-8 max-w-xl mx-auto">
-            Crea tu cuenta hoy y accede a todos los módulos. Sin compromisos, comienza gratis.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              size="lg"
-              className="h-14 px-10 text-lg font-bold bg-white text-slate-900 hover:bg-blue-50"
-              onClick={() => setMode("register")}
-              data-testid="button-cta-register"
-            >
-              <UserPlus className="w-5 h-5 mr-2" />
-              Crear cuenta gratis
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-14 px-8 text-lg border-white/30 text-white hover:bg-white/10 hover:text-white bg-transparent font-semibold"
-              onClick={() => setMode("login")}
-              data-testid="button-cta-login"
-            >
-              Ya tengo cuenta
-              <ChevronRight className="w-5 h-5 ml-1" />
-            </Button>
+      {/* ALL FEATURES GRID */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-50 dark:bg-card/40">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl font-extrabold text-slate-900 dark:text-foreground">
+              Más módulos integrados sin costo extra
+            </h2>
+            <p className="text-muted-foreground mt-2 text-sm">
+              Todo incluido en la misma suscripción mensual.
+            </p>
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {OTHER_FEATURES.map((item) => (
+              <div key={item.title} className="bg-white dark:bg-card p-6 rounded-xl border border-border/80 shadow-sm flex items-start gap-4">
+                <div className="p-3 bg-primary/10 rounded-lg text-primary shrink-0">
+                  <item.icon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-900 dark:text-foreground mb-1">{item.title}</h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* PRICING SECTION */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white dark:bg-background">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-foreground mb-4">
+            Un Solo Plan. Todo Incluido.
+          </h2>
+          <p className="text-muted-foreground text-lg mb-12">
+            Sin niveles complejos ni tarifas ocultas. Acceso completo para hacer crecer tu negocio.
+          </p>
+
+          <Card className="max-w-md mx-auto border-2 border-emerald-500 shadow-2xl relative overflow-hidden">
+            <div className="bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider py-1.5">
+              Plan Profesional Único
+            </div>
+            <CardContent className="p-8">
+              <div className="flex justify-center items-baseline mb-6">
+                <span className="text-5xl font-extrabold text-slate-900 dark:text-foreground">$300</span>
+                <span className="text-slate-500 font-medium ml-2">MXN / mes</span>
+              </div>
+
+              <ul className="space-y-3 text-left mb-8">
+                {PLAN_BENEFITS.map((b) => (
+                  <li key={b} className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
+                    <Check className="w-5 h-5 text-emerald-500 shrink-0" />
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Button
+                size="lg"
+                className="w-full h-12 font-bold bg-emerald-500 hover:bg-emerald-600 text-white text-base shadow-md"
+                onClick={() => setMode("register")}
+              >
+                Registrarme Ahora
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      {/* CTA FOOTER */}
+      <section className="py-16 px-4 bg-slate-950 text-white text-center">
+        <div className="max-w-3xl mx-auto space-y-6">
+          <h2 className="text-3xl font-bold">Empieza a gestionar tu negocio hoy</h2>
+          <p className="text-slate-400">Publica tu menú, habilita tu agenda de citas y controla tu personal desde un solo lugar.</p>
+          <Button
+            size="lg"
+            className="h-14 px-10 text-lg font-bold bg-white text-slate-950 hover:bg-slate-100"
+            onClick={() => setMode("register")}
+          >
+            Crear mi Cuenta por $300 MXN/mes
+          </Button>
         </div>
       </section>
 
@@ -505,7 +525,7 @@ function LandingHeader({ theme, toggleTheme, onLogin, onRegister, onHome }: {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <button onClick={onHome} className="flex items-center gap-2.5 group">
           <img src={logoImg} alt="migestion.pro" className="h-9 w-9 rounded-full object-cover shadow group-hover:scale-105 transition-transform" />
-          <span className="text-lg font-bold text-gray-900 dark:text-foreground tracking-tight">migestion.pro</span>
+          <span className="text-lg font-bold text-slate-900 dark:text-foreground tracking-tight">migestion.pro</span>
         </button>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-muted-foreground hover:text-foreground" data-testid="button-toggle-theme" title={theme === "dark" ? "Modo claro" : "Modo oscuro"}>
@@ -514,7 +534,7 @@ function LandingHeader({ theme, toggleTheme, onLogin, onRegister, onHome }: {
           <Button variant="ghost" className="font-semibold hidden sm:inline-flex" onClick={onLogin} data-testid="button-login">
             Iniciar Sesión
           </Button>
-          <Button className="font-semibold" onClick={onRegister} data-testid="button-register">
+          <Button className="font-semibold bg-emerald-600 hover:bg-emerald-700 text-white" onClick={onRegister} data-testid="button-register">
             <UserPlus className="w-4 h-4 mr-1.5 hidden sm:block" />
             Registrarse
           </Button>
